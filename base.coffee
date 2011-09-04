@@ -1,5 +1,7 @@
 express = require('express')
 socketio = require('socket.io')
+require("coffee-script")
+osc = require('./lib/osc')
 
 server = express.createServer()
 server.use express.static(__dirname + "/static")
