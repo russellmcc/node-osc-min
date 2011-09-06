@@ -14,6 +14,7 @@
 # + An _OSC Message_ is represented as a javascript object with the following layout:
 #
 #           {
+#               oscType : "message"
 #               address : "/address/pattern/might/have/*/wildcards"
 #               arguments : [arg1,arg2]
 #           }
@@ -24,32 +25,31 @@
 #
 #           {
 #               type : "string"
-#               string : "value"
+#               value : "value"
 #           }
 #
 #    Where the type is one of the following:
 #
-#    + "string" - also contains a "string" key with a string value
-#    + "float" - also contains a "float" key with a numeric value
-#    + "integer" - also contains an "integer" key with a numeric value
-#    + "blob" - also contains a "blob" key with a node.js Buffer value
+#    + "string" - also contains a value key with a string value
+#    + "float" - also contains a value key with a node.js Buffer value.
+#    + "integer" - also contains an value key with a numeric value
+#    + "blob" - also contains a value key with a node.js Buffer value
 #
-#    For messages send to the `toBuffer` function, the "type" member is optional so long as only
-#    one of the other keys is set.
+#    For messages send to the `toBuffer` function, the "type" member is optional.
 #
 #
-# + An _OSC Bundle_ is represented as a javascript object with thw following layout
+# + An _OSC Bundle_ is represented as a javascript object with the following layout
 #
 #           {
+#               oscType : "bundle"
 #               timetag : 7
-#               timetag_blob : <Buffer>
-#               messages : [message1, message 2]
+#               elements : [element1, element]
 #           }
 #
-#   Where the timetag is a javascript-native numeric value, and `timetag_blob` is a node.js buffer
-#   containing the original, full-resolution timetag.  In bundles sent to `toBuffer`, you only 
-#   need to provide one of the two, and the code will use `timetag_blob` if both exist.
+#   Where the timetag is a javascript-native numeric value of the timetag,
+#   and elements is an array of either an _OSC Bundle_ or an _OSC Message_
 #
+# For both _OSC Bundle_s and _OSC Messages
 
 utils = require "./osc-utilities"
 
@@ -57,12 +57,16 @@ utils = require "./osc-utilities"
 
 #
 # This function takes a node.js Buffer of a complete OSC Packet and outputs the corresponding
-# javascript object, or "null" if the buffer is ill-formed.
+# javascript object, or null if the buffer is ill-formed.
 #
-exports.fromBuffer = (buffer) -> 
+# strict is an optional parameter that makes the function fail more often.
+#
+exports.fromBuffer = (buffer, strict) ->
+    utils.fromOscMessageOrOscBundle buffer, strict
     
 #
 # This function takes a OSC packet encoded in javascript as defined above and returns
 # a node.js Buffer, or null if the object is ill-formed
 #
-exports.toBuffer = (packet) ->
+exports.toBuffer = (object, strict) ->
+    utils.toOscMessageOrOscBundle object, strict
