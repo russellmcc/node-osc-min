@@ -30,7 +30,7 @@ exports["basic strings length"] = (test) ->
 
 testStringRoundTrip = (str, test, strict) ->
     oscstr = osc.toOscString(str)
-    str2 = osc.fromOscString(oscstr, strict)
+    str2 = osc.splitOscString(oscstr, strict)?.string
     test.strictEqual(str, str2)
     
 exports["basic strings round trip"] = (test) ->
@@ -39,7 +39,7 @@ exports["basic strings round trip"] = (test) ->
     test.done()
     
 exports["non strings fail toOscString"] = (test) ->
-    test.strictEqual(osc.toOscString(7), null)
+    test.throws -> osc.toOscString(7)
     test.done()
     
 exports["strings with null characters don't fail toOscString by default"] = (test) ->
@@ -47,15 +47,15 @@ exports["strings with null characters don't fail toOscString by default"] = (tes
     test.done()
     
 exports["strings with null characters fail toOscString in strict mode"] = (test) ->
-    test.strictEqual(osc.toOscString("\u0000", true), null)
+    test.throws -> osc.toOscString("\u0000", true)
     test.done()
     
-exports["osc buffers with no null characters fail fromOscString in strict mode"] = (test) ->
-    test.strictEqual(osc.fromOscString(new Buffer("abc"), true), null)
+exports["osc buffers with no null characters fail splitOscString in strict mode"] = (test) ->
+    test.throws -> osc.splitOscString new Buffer("abc"), true
     test.done()
 
 exports["osc buffers with non-null characters after a null character fail fromOscString in strict mode"] = (test) ->
-    test.strictEqual(osc.fromOscString(new Buffer("abc\u0000abcd"), true), null)
+    test.throws -> osc.fromOscString new Buffer("abc\u0000abcd"), true
     test.done()
 
 exports["basic strings pass fromOscString in strict mode"] = (test) ->
@@ -64,7 +64,7 @@ exports["basic strings pass fromOscString in strict mode"] = (test) ->
     test.done()
 
 exports["osc buffers with non-four length fail in strict mode"] = (test) ->
-    test.strictEqual(osc.fromOscString(new Buffer("abcd\u0000\u0000"), true), null)
+    test.throws -> osc.fromOscString new Buffer("abcd\u0000\u0000"), true
     test.done()
     
 exports["splitOscString of an osc-string matches the string"] = (test) ->
@@ -89,13 +89,11 @@ exports["splitOscString works with just a string by default"] = (test) ->
     test.done()
     
 exports["splitOscString strict fails for just a string"] = (test) ->
-    split = osc.splitOscString (new Buffer "testing it"), true
-    test.strictEqual split, null
+    test.throws -> osc.splitOscString (new Buffer "testing it"), true
     test.done()
 
 exports["splitOscString strict fails for string with not enough padding"] = (test) ->
-    split = osc.splitOscString (new Buffer "testing \u0000\u0000"), true
-    test.strictEqual split, null
+    test.throws -> osc.splitOscString (new Buffer "testing \u0000\u0000"), true
     test.done()
 
 exports["splitOscString strict succeeds for strings with valid padding"] = (test) ->
@@ -105,8 +103,7 @@ exports["splitOscString strict succeeds for strings with valid padding"] = (test
     test.done()
 
 exports["splitOscString strict fails for string with invalid padding"] = (test) ->
-    split = osc.splitOscString (new Buffer "testing it\u0000aaaaa"), true
-    test.strictEqual split, null
+    test.throws -> osc.splitOscString (new Buffer "testing it\u0000aaaaa"), true
     test.done()
     
 exports["fromOscMessage with no type string works"] = (test) ->
@@ -175,8 +172,8 @@ exports["fromOscMessage with multiple arguments works."] = (test) ->
 exports["fromOscMessage strict fails if type string has no comma"] = (test) ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString "fake"
-    translate = osc.fromOscMessage (osc.concatenateBuffers [oscaddr, osctype]), true
-    test.strictEqual translate, null
+    test.throws -> 
+        osc.fromOscMessage (osc.concatenateBuffers [oscaddr, osctype]), true
     test.done()
     
 exports["fromOscBundle works with no messages"] = (test) ->
