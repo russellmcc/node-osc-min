@@ -1,19 +1,27 @@
-#
+# # osc-utilities.coffee
+# ## Intro
 #  This file contains some lower-level utilities for OSC handling.
-#  My guess is client code won't need this.
+#  My guess is client code won't need this.  If you do need this, you must
+#  require coffee first, then write:
+#
+#       require("coffee-script");
+#       osc-utils = require("osc/lib/osc-utilities");
 #
 #  See the comments in osc.coffee for more information about the structure of 
 # the objects we're dealing with here.
 #
+
+# ## Dependencies
+# require the minimal binary packing utilities
 binpack = require "binpack"
 
-# this private utility finds the amount of padding for a given string.
-padding = (str) ->
-    bufflength = Buffer.byteLength(str)
-    4 - (bufflength % 4)
+# ## Exported Functions 
 
 # Utility for working with buffers. takes an array of buffers,
 # output one buffer with all of the array concatenated
+#
+# This is really only exported for TDD, but maybe it'll be useful
+# to someone else too.
 exports.concatenateBuffers = (buffers) ->
     return (new Buffer 0) if not ((typeof buffers) is "object") and (buffers instanceof Array)
 
@@ -32,13 +40,6 @@ exports.concatenateBuffers = (buffers) ->
         copyTo += buffer.length
 
     destBuffer
-
-#
-# An error that only throws when we're in strict mode.
-#
-StrictError = (str) ->
-    new Error "Strict Error: " + str
-
 
 #
 # Convert a javascript string into a node.js Buffer containing an OSC-String.
@@ -125,13 +126,6 @@ exports.toIntegerBuffer = (number, type) ->
     type = "Int32" if not type?
     return new Error "cannot pack a non-number into an integer buffer" if typeof number isnt "number"
     binpack["pack" + type] number, "big"
-    
-typeCodes = {
-    "i" : "integer"
-    "f" : "float"
-    "s" : "string"
-    "b" : "blob"
-}
 
 # convert a type code to a javascript typestring
 exports.oscTypeCodeToTypeString = (typeCode) ->
@@ -247,54 +241,6 @@ exports.fromOscMessage = (buffer, strict) ->
         )
  
     {address : address, arguments : args, oscType : "message"}
- 
-
-#
-# Does something for each element in an array of osc-message-or-bundles,
-# each prefixed by a length (such as appears in osc-messages), then
-# return the result as an array.
-#
-# This is not exported because it doesn't validate the format and it's
-# not really a generally useful function.
-#
-# If a function throws on an element, we discard that element in the map
-# but we don't give up completely.
-#
-mapBundleList = (buffer, func) ->
-    elems = while buffer.length
-        # the length of the element is stored in an integer
-        {integer : size, rest : buffer}  = exports.splitInteger buffer
-        
-        # if the size is bigger than the packet, something's messed up, so give up.
-        if size > buffer.length        
-            throw new Error "Invalid bundle list: size of element is bigger than buffer" 
-
-        thisElemBuffer = buffer[0...size]
-        
-        # move the buffer to after the element we're just parsing.
-        buffer = buffer[size...buffer.length]
-        
-        # record this element
-        try
-            func thisElemBuffer
-        catch e
-            null
-            
-    # remove all null from elements
-    nonNullElems = []
-    for elem in elems
-        (nonNullElems.push elem) if elem?
-    
-    nonNullElems
-    
-#
-# Internal function to check if this is a message or bundle.
-#
-isOscBundleBuffer = (buffer, strict) ->
-    # both formats begin with strings, so we should just grab the front but not consume it.
-    {string} = exports.splitOscString buffer, strict
-    
-    return string is "\#bundle"
     
 #
 # Try to parse an OSC bundle into a javascript object.
@@ -455,3 +401,71 @@ exports.addressTransformer = (transformer) -> (buffer) ->
         exports.toOscString string
         rest
     ]
+
+## Private utilities
+
+#
+# An error that only throws when we're in strict mode.
+#
+StrictError = (str) ->
+    new Error "Strict Error: " + str
+
+# These are the supported type codes and their matching type strings
+typeCodes = {
+    "i" : "integer"
+    "f" : "float"
+    "s" : "string"
+    "b" : "blob"
+}
+
+# this private utility finds the amount of padding for a given string.
+padding = (str) ->
+    bufflength = Buffer.byteLength(str)
+    4 - (bufflength % 4)
+    
+#
+# Internal function to check if this is a message or bundle.
+#
+isOscBundleBuffer = (buffer, strict) ->
+    # both formats begin with strings, so we should just grab the front but not consume it.
+    {string} = exports.splitOscString buffer, strict
+    
+    return string is "\#bundle"
+    
+#
+# Does something for each element in an array of osc-message-or-bundles,
+# each prefixed by a length (such as appears in osc-messages), then
+# return the result as an array.
+#
+# This is not exported because it doesn't validate the format and it's
+# not really a generally useful function.
+#
+# If a function throws on an element, we discard that element in the map
+# but we don't give up completely.
+#
+mapBundleList = (buffer, func) ->
+    elems = while buffer.length
+        # the length of the element is stored in an integer
+        {integer : size, rest : buffer}  = exports.splitInteger buffer
+        
+        # if the size is bigger than the packet, something's messed up, so give up.
+        if size > buffer.length        
+            throw new Error "Invalid bundle list: size of element is bigger than buffer" 
+
+        thisElemBuffer = buffer[0...size]
+        
+        # move the buffer to after the element we're just parsing.
+        buffer = buffer[size...buffer.length]
+        
+        # record this element
+        try
+            func thisElemBuffer
+        catch e
+            null
+            
+    # remove all null from elements
+    nonNullElems = []
+    for elem in elems
+        (nonNullElems.push elem) if elem?
+    
+    nonNullElems
