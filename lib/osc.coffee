@@ -59,16 +59,16 @@ exports=
 
 #
 # This function takes a node.js Buffer of a complete OSC Packet and outputs the corresponding
-# javascript object, or null if the buffer is ill-formed.
+# javascript object, or throws if the buffer is ill-formed.
 #
-# strict is an optional parameter that makes the function fail more often.
+# `strict` is an optional parameter that makes the function fail more often.
 #
     fromBuffer : (buffer, strict) ->
         utils.fromOscMessageOrOscBundle buffer, strict
     
 #
 # This function takes a OSC packet encoded in javascript as defined above and returns
-# a node.js Buffer, or null if the object is ill-formed
+# a node.js Buffer, or throws if the object is ill-formed
 #
     toBuffer : (object, strict) ->
         utils.toOscMessageOrOscBundle object, strict

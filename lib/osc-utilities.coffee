@@ -1,5 +1,5 @@
 #
-#  This file contains some utilities for OSC handling.
+#  This file contains some lower-level utilities for OSC handling.
 #  My guess is client code won't need this.
 #
 #  See the comments in osc.coffee for more information about the structure of 
