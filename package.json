@@ -1,0 +1,37 @@
+{
+   "name": "osc",
+   "version": "0.0.0",
+   "main": "osc",
+   "author": {
+       "name" : "Russell McClellan",
+       "email": "russell.mcclellan@gmail.com",
+       "url" : "http://www.ghostfact.com"
+   },
+   "description": "Utilities for open sound control for node.js",
+   "keywords": [
+       "binary",
+       "pack",
+       "unpack"
+   ],
+   "repository" : {
+       "type": "git",
+       "url": "http://github.com/ghostfact/node-binpack.git" 
+   },
+   "dependencies" : [
+       "binpack",
+       "coffee-script"
+   ],
+   "devDependencies" : [
+       "nodeunit"
+   ],
+   "directories": {
+       "lib": "lib", 
+       "examples" : "examples"
+   },
+   "engines": {
+       "node": ">=0.3.0"
+   },
+   "scripts": {
+       "test" : "nodeunit test"
+   }
+}
