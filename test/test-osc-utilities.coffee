@@ -181,7 +181,7 @@ exports["fromOscMessage strict fails if type string has no comma"] = (test) ->
     
 exports["fromOscBundle works with no messages"] = (test) ->
     oscbundle = osc.toOscString "#bundle"
-    osctimetag = osc.toIntegerBuffer 0, 8
+    osctimetag = osc.toIntegerBuffer 0, "UInt64"
     buffer = osc.concatenateBuffers [oscbundle, osctimetag]
     translate = osc.fromOscBundle buffer
     test.strictEqual translate?.timetag, 0
@@ -190,7 +190,7 @@ exports["fromOscBundle works with no messages"] = (test) ->
     
 exports["fromOscBundle works with single message"] = (test) ->
     oscbundle = osc.toOscString "#bundle"
-    osctimetag = osc.toIntegerBuffer 0, 8
+    osctimetag = osc.toIntegerBuffer 0, "UInt64"
     oscaddr = osc.toOscString "/addr"
     osctype = osc.toOscString ","
     oscmessage = osc.concatenateBuffers [oscaddr, osctype]
@@ -204,7 +204,7 @@ exports["fromOscBundle works with single message"] = (test) ->
     
 exports["fromOscBundle works with multiple messages"] = (test) ->
     oscbundle = osc.toOscString "#bundle"
-    osctimetag = osc.toIntegerBuffer 0, 8
+    osctimetag = osc.toIntegerBuffer 0, "UInt64"
     oscaddr1 = osc.toOscString "/addr"
     osctype1 = osc.toOscString ","
     oscmessage1 = osc.concatenateBuffers [oscaddr1, osctype1]
@@ -223,13 +223,13 @@ exports["fromOscBundle works with multiple messages"] = (test) ->
     
 exports["fromOscBundle works with nested bundles"] = (test) ->
     oscbundle = osc.toOscString "#bundle"
-    osctimetag = osc.toIntegerBuffer 0, 8
+    osctimetag = osc.toIntegerBuffer 0, "UInt64"
     oscaddr1 = osc.toOscString "/addr"
     osctype1 = osc.toOscString ","
     oscmessage1 = osc.concatenateBuffers [oscaddr1, osctype1]
     osclen1 = osc.toIntegerBuffer oscmessage1.length
     oscbundle2 = osc.toOscString "#bundle"
-    osctimetag2 = osc.toIntegerBuffer 0, 8
+    osctimetag2 = osc.toIntegerBuffer 0, "UInt64"
     oscmessage2 = osc.concatenateBuffers [oscbundle2, osctimetag2]
     osclen2 = osc.toIntegerBuffer oscmessage2.length
     buffer = osc.concatenateBuffers [oscbundle, osctimetag, osclen1, oscmessage1, osclen2, oscmessage2]
@@ -242,7 +242,7 @@ exports["fromOscBundle works with nested bundles"] = (test) ->
     
 exports["fromOscBundle works with non-understood messages"] = (test) ->
     oscbundle = osc.toOscString "#bundle"
-    osctimetag = osc.toIntegerBuffer 0, 8
+    osctimetag = osc.toIntegerBuffer 0, "UInt64"
     oscaddr1 = osc.toOscString "/addr"
     osctype1 = osc.toOscString ","
     oscmessage1 = osc.concatenateBuffers [oscaddr1, osctype1]
@@ -307,11 +307,11 @@ exports["toOscMessage with buffer argument works"] = (test) ->
     test.done()
     
 exports["toOscMessage with float argument works"] = (test) ->
-    roundTripMessage [{value : (new Buffer 4), type : "float"}], test
+    roundTripMessage [{value : 6, type : "float"}], test
     test.done()
 
 exports["toOscMessage with multiple arguments works"] = (test) ->
-    roundTripMessage ["str", 7, (new Buffer 30), {value : (new Buffer 4), type : "float"}], test
+    roundTripMessage ["str", 7, (new Buffer 30), 6], test
     test.done()
     
 roundTripBundle = (elems, test) ->

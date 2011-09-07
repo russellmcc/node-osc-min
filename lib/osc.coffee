@@ -55,18 +55,20 @@ utils = require "./osc-utilities"
 
 # ## Public Exports
 
+exports= 
+
 #
 # This function takes a node.js Buffer of a complete OSC Packet and outputs the corresponding
 # javascript object, or null if the buffer is ill-formed.
 #
 # strict is an optional parameter that makes the function fail more often.
 #
-exports.fromBuffer = (buffer, strict) ->
-    utils.fromOscMessageOrOscBundle buffer, strict
+    fromBuffer : (buffer, strict) ->
+        utils.fromOscMessageOrOscBundle buffer, strict
     
 #
 # This function takes a OSC packet encoded in javascript as defined above and returns
 # a node.js Buffer, or null if the object is ill-formed
 #
-exports.toBuffer = (object, strict) ->
-    utils.toOscMessageOrOscBundle object, strict
+    toBuffer : (object, strict) ->
+        utils.toOscMessageOrOscBundle object, strict
