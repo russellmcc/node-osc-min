@@ -1,6 +1,4 @@
-osc = require('../lib/osc')
-
-# set up an OSC server
+osc = require 'osc'
 udp = require "dgram"
 
 sock = udp.createSocket "udp4", (msg, rinfo) ->
