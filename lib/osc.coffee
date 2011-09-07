@@ -1,4 +1,4 @@
-#
+###
 # ## Intro
 #
 # This file provides the most common utilities for working with 
@@ -16,7 +16,7 @@
 #
 #           {
 #               oscType : "message"
-#               address : "/address/pattern/might/have/*/wildcards"
+#               address : "/address/pattern/might/have/wildcards"
 #               arguments : [arg1,arg2]
 #           }
 #
@@ -51,36 +51,34 @@
 #   and elements is an array of either an _OSC Bundle_ or an _OSC Message_
 #
 # For both _OSC Bundle_s and _OSC Messages
-
+###
 utils = require "./osc-utilities"
 
 # ## Public Exports
 
-exports= 
-
-#
+###
 # This takes a node.js Buffer of a complete OSC Packet and outputs the corresponding
 # javascript object, or throws if the buffer is ill-formed.
 #
 # `strict` is an optional parameter that makes the function fail more often.
-#
-    fromBuffer : (buffer, strict) ->
+###
+exports.fromBuffer = (buffer, strict) ->
         utils.fromOscMessageOrOscBundle buffer, strict
     
-#
+###
 # This takes a OSC packet encoded in javascript as defined above and returns
 # a node.js Buffer, or throws if the object is ill-formed
-#
-    toBuffer : (object, strict) ->
+###
+exports.toBuffer = (object, strict) ->
         utils.toOscMessageOrOscBundle object, strict
         
-#
+###
 # This takes a function that takes a string and outputs a string,
 # and applies that to the address of the message encoded in the buffer,
 # and outputs a new buffer with the new address.
 #
 # If the buffer encodes an osc-bundle, this applies the function to each address 
 # in the bundle.
-#
-    applyAddressTransformer : (buffer, transformer) ->
+###
+exports.applyAddressTransformer = (buffer, transformer) ->
         utils.applyMessageTransformer buffer, (utils.addressTransformer transformer)
