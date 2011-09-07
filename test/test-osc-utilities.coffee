@@ -353,7 +353,7 @@ exports["identity applyMessageTransformer works with a simple bundle"] = (test) 
             {address : "test2"}
         ]
     }
-    transformed = osc.fromOscMessageOrOscBundle (osc.applyMessageTransformer (osc.toOscMessageOrOscBundle base), (a) -> a)
+    transformed = osc.fromOscPacket (osc.applyMessageTransformer (osc.toOscPacket base), (a) -> a)
 
     test.strictEqual transformed?.timetag, 0
     test.strictEqual transformed?.elements?.length, base.elements.length
@@ -380,7 +380,7 @@ exports["addressTransformer works with bundles"] = (test) ->
             {address : "test2"}
         ]
     }
-    transformed = osc.fromOscMessageOrOscBundle (osc.applyMessageTransformer (osc.toOscMessageOrOscBundle base), osc.addressTransformer((a) -> "/prelude/" + a))
+    transformed = osc.fromOscPacket (osc.applyMessageTransformer (osc.toOscPacket base), osc.addressTransformer((a) -> "/prelude/" + a))
 
     test.strictEqual transformed?.timetag, 0
     test.strictEqual transformed?.elements?.length, base.elements.length

@@ -311,14 +311,14 @@ exports.fromOscBundle = (buffer, strict) ->
 
     # convert each element.
     convertedElems = mapBundleList buffer, (buffer) -> 
-        exports.fromOscMessageOrOscBundle buffer, strict
+        exports.fromOscPacket buffer, strict
     
     return {timetag : timetag, elements : convertedElems, oscType : "bundle"}
 
 #
 # convert the buffer into a bundle or a message, depending on the first string
 #
-exports.fromOscMessageOrOscBundle = (buffer, strict) ->
+exports.fromOscPacket = (buffer, strict) ->
     if isOscBundleBuffer buffer, strict
         exports.fromOscBundle buffer, strict
     else
@@ -369,7 +369,7 @@ exports.toOscBundle = (bundle, strict) ->
     for elem in elements
         try
             # try to convert this sub-element into a buffer
-            buff = exports.toOscMessageOrOscBundle elem, strict
+            buff = exports.toOscPacket elem, strict
         
             # okay, pack in the size.
             size = exports.toIntegerBuffer buff.length
@@ -381,7 +381,7 @@ exports.toOscBundle = (bundle, strict) ->
     exports.concatenateBuffers [oscBundleTag, oscTimeTag, allElems]
     
 # convert a javascript format bundle or message into a buffer
-exports.toOscMessageOrOscBundle = (bundleOrMessage, strict) ->
+exports.toOscPacket = (bundleOrMessage, strict) ->
     # first, determine whether or not this is a bundle.
     if bundleOrMessage?.oscType?
         return exports.toOscBundle bundleOrMessage, strict if bundleOrMessage.oscType is "bundle"
