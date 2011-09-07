@@ -108,10 +108,7 @@ exports.splitOscString = (buffer, strict) ->
 # bytes is the number of bytes in the integer, defaults to 4.
 exports.splitInteger = (buffer, type) ->
     type = "Int32" if not type?
-    bytes = if type is "Int64" or type is "UInt64" or type is "Float64"
-                8
-            else
-                4
+    bytes = (binpack["pack" + type] 0).length
     
     throw new Error "buffer is not big enough for integer type" if buffer.length < bytes
     
@@ -123,7 +120,7 @@ exports.splitInteger = (buffer, type) ->
     rest = buffer[bytes...(buffer.length)]
     
     return {integer : value, rest : rest}
- 
+
 exports.toIntegerBuffer = (number, type) ->
     type = "Int32" if not type?
     return new Error "cannot pack a non-number into an integer buffer" if typeof number isnt "number"
