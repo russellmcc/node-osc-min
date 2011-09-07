@@ -1,7 +1,7 @@
 {
    "name": "osc",
    "version": "0.0.0",
-   "main": "osc",
+   "main": "lib/index",
    "author": {
        "name" : "Russell McClellan",
        "email": "russell.mcclellan@gmail.com",

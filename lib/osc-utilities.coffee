@@ -440,7 +440,10 @@ exports.applyMessageTransformer = (buffer, transformer) ->
 # Converts a javascript function from string to string to a function
 # from message buffer to message buffer, applying the function to the
 # parsed strings.
-exports.addressTransformer = (transformer) -> (buffer) -> # curry it up, g!
+#
+# We pre-curry this because we expect to use this with `applyMessageTransformer` above
+#
+exports.addressTransformer = (transformer) -> (buffer) ->
     # parse out the address
     {string, rest} = exports.splitOscString buffer    
     
