@@ -170,8 +170,7 @@ exports.splitOscArgument = (buffer, type, strict) ->
             {value : split.string, rest : split.rest}
         when "blob"
             # not much to do here, first grab an 4 byte int from the buffer
-            split = exports.splitInteger buffer
-            {integer : length, rest : buffer} = split
+            {integer : length, rest : buffer}  = exports.splitInteger buffer
             {value : buffer[0...length], rest : buffer[length...(buffer.length)]}
         when "integer"
             split = exports.splitInteger buffer
@@ -204,11 +203,8 @@ exports.toOscArgument = (value, type, strict) ->
 # translates an OSC message into a javascript representation.
 #
 exports.fromOscMessage = (buffer, strict) ->
-    
-    split = exports.splitOscString buffer, strict
-
     # break off the address
-    { string : address, rest : buffer} = split
+    { string : address, rest : buffer}  = exports.splitOscString buffer, strict
     
     # technically, addresses have to start with "/".
     throw StrictError "addresses must start with /" if strict and address[0] isnt "/"
@@ -221,9 +217,7 @@ exports.fromOscMessage = (buffer, strict) ->
     return {address : address, arguments : []} if not buffer.length
 
     # if there's more data but no type string, we can't parse the arguments.    
-    split = exports.splitOscString buffer, strict
-    return {address : address, arguments : []}  if not split
-    {string : types, rest : buffer} = split
+    {string : types, rest : buffer} = exports.splitOscString buffer, strict
     
     # if the first letter isn't a "," this isn't a valid type so we can't
     # parse the arguments.
@@ -253,59 +247,79 @@ exports.fromOscMessage = (buffer, strict) ->
         )
  
     {address : address, arguments : args, oscType : "message"}
-    
+ 
+
 #
-# Try to parse an OSC bundle into a javascript object.
+# Does something for each element in an array of osc-message-or-bundles,
+# each prefixed by a length (such as appears in osc-messages), then
+# return the result as an array.
 #
-exports.fromOscBundle = (buffer, strict) ->
-    split = exports.splitOscString buffer, strict
-
-    # break off the address
-    { string : bundleTag, rest : buffer} = split
-    
-    # bundles have to start with "#bundle".
-    throw new Error "osc-bundles must begin with \#bundle" if bundleTag isnt "\#bundle"
-    
-    # grab the 8 - bit timetag
-    split = exports.splitInteger buffer, "UInt64"
-
-    { integer : timetag, rest : buffer} = split
-
-    # recurse.
+# This is not exported because it doesn't validate the format and it's
+# not really a generally useful function.
+#
+# If a function throws on an element, we discard that element in the map
+# but we don't give up completely.
+#
+mapBundleList = (buffer, func) ->
     elems = while buffer.length
-                    split = exports.splitInteger buffer
+        # the length of the element is stored in an integer
+        {integer : size, rest : buffer}  = exports.splitInteger buffer
+        
+        # if the size is bigger than the packet, something's messed up, so give up.
+        if size > buffer.length        
+            throw new Error "Invalid bundle list: size of element is bigger than buffer" 
 
-                    {integer : size, rest : buffer} = split
-                    
-                    # if the size is bigger than the packet, something's messed up, so give up.
-                    throw new Error "size is bigger than buffer" if size > buffer.length
-
-                    thisElemBuffer = buffer[0...size]
-                    
-                    # move the buffer to after the element we're just parsing.
-                    buffer = buffer[size...buffer.length]
-                    
-                    # record this element
-                    try
-                        exports.fromOscMessageOrOscBundle thisElemBuffer, strict
-                    catch e
-                        null
-    
+        thisElemBuffer = buffer[0...size]
+        
+        # move the buffer to after the element we're just parsing.
+        buffer = buffer[size...buffer.length]
+        
+        # record this element
+        try
+            func thisElemBuffer
+        catch e
+            null
+            
     # remove all null from elements
     nonNullElems = []
     for elem in elems
         (nonNullElems.push elem) if elem?
     
-    return {timetag : timetag, elements : nonNullElems, oscType : "bundle"}
+    nonNullElems
+    
+#
+# Internal function to check if this is a message or bundle.
+#
+isOscBundleBuffer = (buffer, strict) ->
+    # both formats begin with strings, so we should just grab the front but not consume it.
+    {string} = exports.splitOscString buffer, strict
+    
+    return string is "\#bundle"
+    
+#
+# Try to parse an OSC bundle into a javascript object.
+#
+exports.fromOscBundle = (buffer, strict) ->
+    # break off the bundletag
+    { string : bundleTag, rest : buffer} = exports.splitOscString buffer, strict
+    
+    # bundles have to start with "#bundle".
+    throw new Error "osc-bundles must begin with \#bundle" if bundleTag isnt "\#bundle"
+    
+    # grab the 8 - bit timetag
+    { integer : timetag, rest : buffer} = exports.splitInteger buffer, "UInt64"
+
+    # convert each element.
+    convertedElems = mapBundleList buffer, (buffer) -> 
+        exports.fromOscMessageOrOscBundle buffer, strict
+    
+    return {timetag : timetag, elements : convertedElems, oscType : "bundle"}
 
 #
 # convert the buffer into a bundle or a message, depending on the first string
 #
 exports.fromOscMessageOrOscBundle = (buffer, strict) ->
-    # both formats begin with strings, so we should just grab the front but not consume it.
-    split = exports.splitOscString buffer, strict
-    
-    if split.string is "\#bundle"
+    if isOscBundleBuffer buffer, strict
         exports.fromOscBundle buffer, strict
     else
         exports.fromOscMessage buffer, strict
@@ -356,11 +370,10 @@ exports.toOscBundle = (bundle, strict) ->
         try
             # try to convert this sub-element into a buffer
             buff = exports.toOscMessageOrOscBundle elem, strict
-            
-            if buff?
-                # okay, pack in the size.
-                size = exports.toIntegerBuffer buff.length
-                oscElems.push exports.concatenateBuffers [size, buff]
+        
+            # okay, pack in the size.
+            size = exports.toIntegerBuffer buff.length
+            oscElems.push exports.concatenateBuffers [size, buff]
         catch e
             null
             
@@ -378,3 +391,64 @@ exports.toOscMessageOrOscBundle = (bundleOrMessage, strict) ->
     return exports.toOscBundle bundleOrMessage, strict if bundleOrMessage?.timetag? or bundleOrMessage?.elements?
     
     exports.toOscMessage bundleOrMessage, strict
+
+#
+# Applies a transformation function (that is, a function from buffers to buffers)
+# to each element of given osc-bundle or message.
+#
+exports.applyMessageTransformer = (buffer, transformer) ->
+    if isOscBundleBuffer buffer
+        
+        # parse out the bundle-id and the tag, we don't want to change these
+        { string, rest : buffer} = exports.splitOscString buffer
+        
+        # bundles have to start with "#bundle".
+        throw new Error "osc-bundles must begin with \#bundle" if string isnt "\#bundle"
+        
+        bundleTagBuffer = exports.toOscString string
+        
+        # we know that the timetag is 8 bytes, we don't want to mess with it, so grab it as
+        # a buffer.  There is some subtle loss of precision with the round trip from
+        # int64 to float64.
+        timetagBuffer = buffer[0...8]
+        buffer = buffer[8...buffer.length]
+        
+        # convert each element.
+        elems = mapBundleList buffer, (buffer) -> 
+            exports.applyMessageTransformer buffer, transformer
+    
+        totalLength = bundleTagBuffer.length + timetagBuffer.length
+        totalLength += 4 + elem.length for elem in elems
+        
+        # okay, now we have to reconcatenate everything.        
+        outBuffer = new Buffer totalLength
+        bundleTagBuffer.copy outBuffer, 0
+        timetagBuffer.copy outBuffer, bundleTagBuffer.length
+        copyIndex = bundleTagBuffer.length + timetagBuffer.length
+        for elem in elems
+            lengthBuff = exports.toIntegerBuffer elem.length
+            lengthBuff.copy outBuffer, copyIndex
+            copyIndex += 4
+            elem.copy outBuffer, copyIndex
+            copyIndex += elem.length
+
+        outBuffer
+    else
+        # just apply the transformer
+        transformer buffer
+        
+# Converts a javascript function from string to string to a function
+# from message buffer to message buffer, applying the function to the
+# parsed strings.
+exports.addressTransformer = (transformer) -> (buffer) -> # curry it up, g!
+    # parse out the address
+    {string, rest} = exports.splitOscString buffer    
+    
+    # apply the function
+    string = transformer string
+    
+    # re-concatenate
+    exports.concatenateBuffers [
+        exports.toOscString string
+        rest
+    ]

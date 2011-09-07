@@ -1,8 +1,9 @@
 #
 # ## Intro
 #
-# This file provides utilities for working with [OSC](http://opensoundcontrol.org/), a format for 
-# sound and systems control.  Here we implement the OSC 1.1 specification.
+# This file provides the most common utilities for working with 
+# [OSC](http://opensoundcontrol.org/), a format for sound and systems control.  
+# Here we implement the OSC 1.0 specification.
 #
 # There are several types of objects in OSC, each of which corresponds to a javascript object.
 # 
@@ -58,7 +59,7 @@ utils = require "./osc-utilities"
 exports= 
 
 #
-# This function takes a node.js Buffer of a complete OSC Packet and outputs the corresponding
+# This takes a node.js Buffer of a complete OSC Packet and outputs the corresponding
 # javascript object, or throws if the buffer is ill-formed.
 #
 # `strict` is an optional parameter that makes the function fail more often.
@@ -67,8 +68,19 @@ exports=
         utils.fromOscMessageOrOscBundle buffer, strict
     
 #
-# This function takes a OSC packet encoded in javascript as defined above and returns
+# This takes a OSC packet encoded in javascript as defined above and returns
 # a node.js Buffer, or throws if the object is ill-formed
 #
     toBuffer : (object, strict) ->
         utils.toOscMessageOrOscBundle object, strict
+        
+#
+# This takes a function that takes a string and outputs a string,
+# and applies that to the address of the message encoded in the buffer,
+# and outputs a new buffer with the new address.
+#
+# If the buffer encodes an osc-bundle, this applies the function to each address 
+# in the bundle.
+#
+    applyAddressTransformer : (buffer, transformer) ->
+        utils.applyMessageTransformer buffer, (utils.addressTransformer transformer)

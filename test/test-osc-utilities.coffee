@@ -334,3 +334,57 @@ exports["toOscBundle with one message works"] = (test) ->
 exports["toOscBundle with nested bundles works"] = (test) ->
     roundTripBundle [{address : "/addr"}, {timetag : 0}], test
     test.done()
+    
+exports["identity applyMessageTransformer works with single message"] = (test) ->
+    testBuffer = osc.toOscString "/message"
+    test.strictEqual (osc.applyMessageTransformer testBuffer, (a) -> a), testBuffer
+    test.done()
+
+exports["nullary applyMessageTransformer works with single message"] = (test) ->
+    testBuffer = osc.toOscString "/message"
+    test.strictEqual (osc.applyMessageTransformer testBuffer, (a) -> new Buffer 0).length, 0
+    test.done()
+    
+exports["identity applyMessageTransformer works with a simple bundle"] = (test) ->
+    base = {
+        timetag : 0
+        elements : [
+            {address : "test1"}
+            {address : "test2"}
+        ]
+    }
+    transformed = osc.fromOscMessageOrOscBundle (osc.applyMessageTransformer (osc.toOscMessageOrOscBundle base), (a) -> a)
+
+    test.strictEqual transformed?.timetag, 0
+    test.strictEqual transformed?.elements?.length, base.elements.length
+    for i in [0...base.elements.length]
+        test.strictEqual transformed?.elements?[i]?.timetag, base.elements[i].timetag
+        test.strictEqual transformed?.elements?[i]?.address, base.elements[i].address
+    test.done()
+    
+exports["addressTransformer works with identity"] = (test) ->
+    testBuffer = osc.concatenateBuffers [
+        osc.toOscString "/message"
+        new Buffer "gobblegobblewillsnever\u0000parse blah lbha"
+    ]
+    transformed = osc.applyMessageTransformer testBuffer, osc.addressTransformer((a) -> a)
+    for i in [0...testBuffer.length]
+        test.equal transformed[i], testBuffer[i]
+    test.done()
+    
+exports["addressTransformer works with bundles"] = (test) ->
+    base = {
+        timetag : 0
+        elements : [
+            {address : "test1"}
+            {address : "test2"}
+        ]
+    }
+    transformed = osc.fromOscMessageOrOscBundle (osc.applyMessageTransformer (osc.toOscMessageOrOscBundle base), osc.addressTransformer((a) -> "/prelude/" + a))
+
+    test.strictEqual transformed?.timetag, 0
+    test.strictEqual transformed?.elements?.length, base.elements.length
+    for i in [0...base.elements.length]
+        test.strictEqual transformed?.elements?[i]?.timetag, base.elements[i].timetag
+        test.strictEqual transformed?.elements?[i]?.address, "/prelude/" + base.elements[i].address
+    test.done()
