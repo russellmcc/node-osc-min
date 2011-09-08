@@ -335,17 +335,17 @@ exports["toOscBundle with nested bundles works"] = (test) ->
     roundTripBundle [{address : "/addr"}, {timetag : 0}], test
     test.done()
     
-exports["identity applyMessageTransformer works with single message"] = (test) ->
+exports["identity applyTransformer works with single message"] = (test) ->
     testBuffer = osc.toOscString "/message"
-    test.strictEqual (osc.applyMessageTransformer testBuffer, (a) -> a), testBuffer
+    test.strictEqual (osc.applyTransformer testBuffer, (a) -> a), testBuffer
     test.done()
 
-exports["nullary applyMessageTransformer works with single message"] = (test) ->
+exports["nullary applyTransformer works with single message"] = (test) ->
     testBuffer = osc.toOscString "/message"
-    test.strictEqual (osc.applyMessageTransformer testBuffer, (a) -> new Buffer 0).length, 0
+    test.strictEqual (osc.applyTransformer testBuffer, (a) -> new Buffer 0).length, 0
     test.done()
     
-exports["identity applyMessageTransformer works with a simple bundle"] = (test) ->
+exports["identity applyTransformer works with a simple bundle"] = (test) ->
     base = {
         timetag : 0
         elements : [
@@ -353,7 +353,7 @@ exports["identity applyMessageTransformer works with a simple bundle"] = (test) 
             {address : "test2"}
         ]
     }
-    transformed = osc.fromOscPacket (osc.applyMessageTransformer (osc.toOscPacket base), (a) -> a)
+    transformed = osc.fromOscPacket (osc.applyTransformer (osc.toOscPacket base), (a) -> a)
 
     test.strictEqual transformed?.timetag, 0
     test.strictEqual transformed?.elements?.length, base.elements.length
@@ -367,7 +367,7 @@ exports["addressTransformer works with identity"] = (test) ->
         osc.toOscString "/message"
         new Buffer "gobblegobblewillsnever\u0000parse blah lbha"
     ]
-    transformed = osc.applyMessageTransformer testBuffer, osc.addressTransformer((a) -> a)
+    transformed = osc.applyTransformer testBuffer, osc.addressTransformer((a) -> a)
     for i in [0...testBuffer.length]
         test.equal transformed[i], testBuffer[i]
     test.done()
@@ -380,7 +380,7 @@ exports["addressTransformer works with bundles"] = (test) ->
             {address : "test2"}
         ]
     }
-    transformed = osc.fromOscPacket (osc.applyMessageTransformer (osc.toOscPacket base), osc.addressTransformer((a) -> "/prelude/" + a))
+    transformed = osc.fromOscPacket (osc.applyTransformer (osc.toOscPacket base), osc.addressTransformer((a) -> "/prelude/" + a))
 
     test.strictEqual transformed?.timetag, 0
     test.strictEqual transformed?.elements?.length, base.elements.length
@@ -388,3 +388,29 @@ exports["addressTransformer works with bundles"] = (test) ->
         test.strictEqual transformed?.elements?[i]?.timetag, base.elements[i].timetag
         test.strictEqual transformed?.elements?[i]?.address, "/prelude/" + base.elements[i].address
     test.done()
+
+buffeq = (test, buff, exp_buff) ->
+    test.equal buff.length, exp_buff.length
+    for i in [0...exp_buff.length]
+        test.equal buff[i], exp_buff[i]
+
+exports["messageTransformer works with identity function for single message"] = (test) ->
+    message =
+        address: "/addr"
+        arguments: []
+    buff = osc.toOscPacket message
+    buffeq test, (osc.applyTransformer buff, osc.messageTransformer (a) -> a), buff
+    test.done()
+    
+exports["messageTransformer works with bundles"] = (test) ->
+    message = {
+        timetag : 0
+        elements : [
+            {address : "test1"}
+            {address : "test2"}
+        ]
+    }
+    buff = osc.toOscPacket message
+    buffeq test, (osc.applyTransformer buff, osc.messageTransformer (a) -> a), buff
+    test.done()
+    

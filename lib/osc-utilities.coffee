@@ -339,49 +339,66 @@ exports.toOscPacket = (bundleOrMessage, strict) ->
     exports.toOscMessage bundleOrMessage, strict
 
 #
+# Helper function for transforming all messages in a bundle with a given message
+# transformer.
+#
+exports.applyMessageTranformerToBundle = (transformer) -> (buffer) ->
+    # parse out the bundle-id and the tag, we don't want to change these
+    { string, rest : buffer} = exports.splitOscString buffer
+    
+    # bundles have to start with "#bundle".
+    throw new Error "osc-bundles must begin with \#bundle" if string isnt "\#bundle"
+    
+    bundleTagBuffer = exports.toOscString string
+    
+    # we know that the timetag is 8 bytes, we don't want to mess with it, so grab it as
+    # a buffer.  There is some subtle loss of precision with the round trip from
+    # int64 to float64.
+    timetagBuffer = buffer[0...8]
+    buffer = buffer[8...buffer.length]
+    
+    # convert each element.
+    elems = mapBundleList buffer, (buffer) -> 
+        exports.applyTransformer(
+            buffer, 
+            transformer, 
+            exports.applyMessageTranformerToBundle transformer
+        )
+
+    totalLength = bundleTagBuffer.length + timetagBuffer.length
+    totalLength += 4 + elem.length for elem in elems
+    
+    # okay, now we have to reconcatenate everything.        
+    outBuffer = new Buffer totalLength
+    bundleTagBuffer.copy outBuffer, 0
+    timetagBuffer.copy outBuffer, bundleTagBuffer.length
+    copyIndex = bundleTagBuffer.length + timetagBuffer.length
+    for elem in elems
+        lengthBuff = exports.toIntegerBuffer elem.length
+        lengthBuff.copy outBuffer, copyIndex
+        copyIndex += 4
+        elem.copy outBuffer, copyIndex
+        copyIndex += elem.length
+    outBuffer
+
+#
 # Applies a transformation function (that is, a function from buffers to buffers)
 # to each element of given osc-bundle or message.
+# 
+# `buffer` is the buffer to transform, which must be a buffer of a full packet.
+# `messageTransformer` is function from message buffers to message buffers
+#  `bundleTransformer` is an optional parameter for functions from bundle buffers to bundle buffers.
+# if `bundleTransformer` is not set, it defaults to just applying the `messageTransformer`
+# to each message in the bundle.
 #
-exports.applyMessageTransformer = (buffer, transformer) ->
-    if isOscBundleBuffer buffer
-        
-        # parse out the bundle-id and the tag, we don't want to change these
-        { string, rest : buffer} = exports.splitOscString buffer
-        
-        # bundles have to start with "#bundle".
-        throw new Error "osc-bundles must begin with \#bundle" if string isnt "\#bundle"
-        
-        bundleTagBuffer = exports.toOscString string
-        
-        # we know that the timetag is 8 bytes, we don't want to mess with it, so grab it as
-        # a buffer.  There is some subtle loss of precision with the round trip from
-        # int64 to float64.
-        timetagBuffer = buffer[0...8]
-        buffer = buffer[8...buffer.length]
-        
-        # convert each element.
-        elems = mapBundleList buffer, (buffer) -> 
-            exports.applyMessageTransformer buffer, transformer
+exports.applyTransformer = (buffer, mTransformer, bundleTransformer) ->
+    if not bundleTransformer?
+        bundleTransformer = exports.applyMessageTranformerToBundle mTransformer
     
-        totalLength = bundleTagBuffer.length + timetagBuffer.length
-        totalLength += 4 + elem.length for elem in elems
-        
-        # okay, now we have to reconcatenate everything.        
-        outBuffer = new Buffer totalLength
-        bundleTagBuffer.copy outBuffer, 0
-        timetagBuffer.copy outBuffer, bundleTagBuffer.length
-        copyIndex = bundleTagBuffer.length + timetagBuffer.length
-        for elem in elems
-            lengthBuff = exports.toIntegerBuffer elem.length
-            lengthBuff.copy outBuffer, copyIndex
-            copyIndex += 4
-            elem.copy outBuffer, copyIndex
-            copyIndex += elem.length
-
-        outBuffer
+    if isOscBundleBuffer buffer
+        bundleTransformer buffer
     else
-        # just apply the transformer
-        transformer buffer
+        mTransformer buffer
         
 # Converts a javascript function from string to string to a function
 # from message buffer to message buffer, applying the function to the
@@ -402,6 +419,14 @@ exports.addressTransformer = (transformer) -> (buffer) ->
         rest
     ]
 
+#
+# Take a function that transformer a javascript _OSC Message_ and
+# convert it to a function that transforms osc-buffers.
+#
+exports.messageTransformer = (transformer) -> (buffer) ->
+    message = exports.fromOscMessage buffer
+    exports.toOscMessage transformer message
+    
 ## Private utilities
 
 #
