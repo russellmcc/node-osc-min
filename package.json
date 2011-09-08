@@ -16,14 +16,14 @@
    ],
    "repository" : {
        "type": "git",
-       "url": "http://github.com/ghostfact/node-binpack.git" 
+       "url": "http://github.com/ghostfact/node-osc.git" 
    },
    "dependencies" : [
        "binpack",
        "coffee-script"
    ],
    "devDependencies" : [
-       "nodeunit"
+       "expresso"
    ],
    "directories": {
        "lib": "lib", 
