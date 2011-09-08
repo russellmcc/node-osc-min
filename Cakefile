@@ -1,5 +1,4 @@
 fs = require 'fs'
-#proc = require 'process'
 child = require 'child_process'
 
 task 'test', 'run OSC tests (requires development install)', (options) ->

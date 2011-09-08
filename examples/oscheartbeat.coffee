@@ -6,6 +6,11 @@ dgram = require "dgram"
 
 udp = dgram.createSocket "udp4"
 
+if process.argv[2]?
+    outport = parseInt process.arg[2]
+else
+    outport = 41234
+
 sendHeartbeat = () ->
     buf = osc.toBuffer(
         address : "/heartbeat"
@@ -17,6 +22,8 @@ sendHeartbeat = () ->
         ]
     )
     
-    udp.send buf, 0, buf.length, 41234, "localhost"
+    udp.send buf, 0, buf.length, outport, "localhost"
     
 setInterval sendHeartbeat, 2000
+
+console.log "sending heartbeat messages to http://localhost:" + outport
