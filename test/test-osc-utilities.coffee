@@ -335,17 +335,17 @@ exports["toOscBundle with nested bundles works"] = (test) ->
     roundTripBundle [{address : "/addr"}, {timetag : 0}], test
     test.done()
     
-exports["identity applyTransformer works with single message"] = (test) ->
+exports["identity applyTransform works with single message"] = (test) ->
     testBuffer = osc.toOscString "/message"
-    test.strictEqual (osc.applyTransformer testBuffer, (a) -> a), testBuffer
+    test.strictEqual (osc.applyTransform testBuffer, (a) -> a), testBuffer
     test.done()
 
-exports["nullary applyTransformer works with single message"] = (test) ->
+exports["nullary applyTransform works with single message"] = (test) ->
     testBuffer = osc.toOscString "/message"
-    test.strictEqual (osc.applyTransformer testBuffer, (a) -> new Buffer 0).length, 0
+    test.strictEqual (osc.applyTransform testBuffer, (a) -> new Buffer 0).length, 0
     test.done()
     
-exports["identity applyTransformer works with a simple bundle"] = (test) ->
+exports["identity applyTransform works with a simple bundle"] = (test) ->
     base = {
         timetag : 0
         elements : [
@@ -353,7 +353,7 @@ exports["identity applyTransformer works with a simple bundle"] = (test) ->
             {address : "test2"}
         ]
     }
-    transformed = osc.fromOscPacket (osc.applyTransformer (osc.toOscPacket base), (a) -> a)
+    transformed = osc.fromOscPacket (osc.applyTransform (osc.toOscPacket base), (a) -> a)
 
     test.strictEqual transformed?.timetag, 0
     test.strictEqual transformed?.elements?.length, base.elements.length
@@ -362,17 +362,17 @@ exports["identity applyTransformer works with a simple bundle"] = (test) ->
         test.strictEqual transformed?.elements?[i]?.address, base.elements[i].address
     test.done()
     
-exports["addressTransformer works with identity"] = (test) ->
+exports["addressTransform works with identity"] = (test) ->
     testBuffer = osc.concatenateBuffers [
         osc.toOscString "/message"
         new Buffer "gobblegobblewillsnever\u0000parse blah lbha"
     ]
-    transformed = osc.applyTransformer testBuffer, osc.addressTransformer((a) -> a)
+    transformed = osc.applyTransform testBuffer, osc.addressTransform((a) -> a)
     for i in [0...testBuffer.length]
         test.equal transformed[i], testBuffer[i]
     test.done()
     
-exports["addressTransformer works with bundles"] = (test) ->
+exports["addressTransform works with bundles"] = (test) ->
     base = {
         timetag : 0
         elements : [
@@ -380,7 +380,7 @@ exports["addressTransformer works with bundles"] = (test) ->
             {address : "test2"}
         ]
     }
-    transformed = osc.fromOscPacket (osc.applyTransformer (osc.toOscPacket base), osc.addressTransformer((a) -> "/prelude/" + a))
+    transformed = osc.fromOscPacket (osc.applyTransform (osc.toOscPacket base), osc.addressTransform((a) -> "/prelude/" + a))
 
     test.strictEqual transformed?.timetag, 0
     test.strictEqual transformed?.elements?.length, base.elements.length
@@ -394,15 +394,15 @@ buffeq = (test, buff, exp_buff) ->
     for i in [0...exp_buff.length]
         test.equal buff[i], exp_buff[i]
 
-exports["messageTransformer works with identity function for single message"] = (test) ->
+exports["messageTransform works with identity function for single message"] = (test) ->
     message =
         address: "/addr"
         arguments: []
     buff = osc.toOscPacket message
-    buffeq test, (osc.applyTransformer buff, osc.messageTransformer (a) -> a), buff
+    buffeq test, (osc.applyTransform buff, osc.messageTransform (a) -> a), buff
     test.done()
     
-exports["messageTransformer works with bundles"] = (test) ->
+exports["messageTransform works with bundles"] = (test) ->
     message = {
         timetag : 0
         elements : [
@@ -411,6 +411,6 @@ exports["messageTransformer works with bundles"] = (test) ->
         ]
     }
     buff = osc.toOscPacket message
-    buffeq test, (osc.applyTransformer buff, osc.messageTransformer (a) -> a), buff
+    buffeq test, (osc.applyTransform buff, osc.messageTransform (a) -> a), buff
     test.done()
     

@@ -340,9 +340,9 @@ exports.toOscPacket = (bundleOrMessage, strict) ->
 
 #
 # Helper function for transforming all messages in a bundle with a given message
-# transformer.
+# transform.
 #
-exports.applyMessageTranformerToBundle = (transformer) -> (buffer) ->
+exports.applyMessageTranformerToBundle = (transform) -> (buffer) ->
     # parse out the bundle-id and the tag, we don't want to change these
     { string, rest : buffer} = exports.splitOscString buffer
     
@@ -359,10 +359,10 @@ exports.applyMessageTranformerToBundle = (transformer) -> (buffer) ->
     
     # convert each element.
     elems = mapBundleList buffer, (buffer) -> 
-        exports.applyTransformer(
+        exports.applyTransform(
             buffer, 
-            transformer, 
-            exports.applyMessageTranformerToBundle transformer
+            transform, 
+            exports.applyMessageTranformerToBundle transform
         )
 
     totalLength = bundleTagBuffer.length + timetagBuffer.length
@@ -386,32 +386,32 @@ exports.applyMessageTranformerToBundle = (transformer) -> (buffer) ->
 # to each element of given osc-bundle or message.
 # 
 # `buffer` is the buffer to transform, which must be a buffer of a full packet.
-# `messageTransformer` is function from message buffers to message buffers
-#  `bundleTransformer` is an optional parameter for functions from bundle buffers to bundle buffers.
-# if `bundleTransformer` is not set, it defaults to just applying the `messageTransformer`
+# `messageTransform` is function from message buffers to message buffers
+#  `bundleTransform` is an optional parameter for functions from bundle buffers to bundle buffers.
+# if `bundleTransform` is not set, it defaults to just applying the `messageTransform`
 # to each message in the bundle.
 #
-exports.applyTransformer = (buffer, mTransformer, bundleTransformer) ->
-    if not bundleTransformer?
-        bundleTransformer = exports.applyMessageTranformerToBundle mTransformer
+exports.applyTransform = (buffer, mTransform, bundleTransform) ->
+    if not bundleTransform?
+        bundleTransform = exports.applyMessageTranformerToBundle mTransform
     
     if isOscBundleBuffer buffer
-        bundleTransformer buffer
+        bundleTransform buffer
     else
-        mTransformer buffer
+        mTransform buffer
         
 # Converts a javascript function from string to string to a function
 # from message buffer to message buffer, applying the function to the
 # parsed strings.
 #
-# We pre-curry this because we expect to use this with `applyMessageTransformer` above
+# We pre-curry this because we expect to use this with `applyMessageTransform` above
 #
-exports.addressTransformer = (transformer) -> (buffer) ->
+exports.addressTransform = (transform) -> (buffer) ->
     # parse out the address
     {string, rest} = exports.splitOscString buffer    
     
     # apply the function
-    string = transformer string
+    string = transform string
     
     # re-concatenate
     exports.concatenateBuffers [
@@ -420,12 +420,12 @@ exports.addressTransformer = (transformer) -> (buffer) ->
     ]
 
 #
-# Take a function that transformer a javascript _OSC Message_ and
+# Take a function that transform a javascript _OSC Message_ and
 # convert it to a function that transforms osc-buffers.
 #
-exports.messageTransformer = (transformer) -> (buffer) ->
+exports.messageTransform = (transform) -> (buffer) ->
     message = exports.fromOscMessage buffer
-    exports.toOscMessage transformer message
+    exports.toOscMessage transform message
     
 ## Private utilities
 
