@@ -23,11 +23,12 @@ binpack = require "binpack"
 # This is really only exported for TDD, but maybe it'll be useful
 # to someone else too.
 exports.concatenateBuffers = (buffers) ->
-    return (new Buffer 0) if not ((typeof buffers) is "object") and (buffers instanceof Array)
-
+    if not (((typeof buffers) is "object") and (buffers instanceof Array))
+        throw new Error "concatenateBuffers must take an array of buffers"
+        
     for buffer in buffers
         if not Buffer.isBuffer(buffer)
-            return (new Buffer 0)
+            throw new Error "concatenateBuffers must take an array of buffers"
     
     sumLength = 0
     sumLength += buffer.length for buffer in buffers
@@ -124,7 +125,7 @@ exports.splitInteger = (buffer, type) ->
 
 exports.toIntegerBuffer = (number, type) ->
     type = "Int32" if not type?
-    return new Error "cannot pack a non-number into an integer buffer" if typeof number isnt "number"
+    throw new Error "cannot pack a non-number into an integer buffer" if typeof number isnt "number"
     binpack["pack" + type] number, "big"
 
 # convert a type code to a javascript typestring
