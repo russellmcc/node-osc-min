@@ -276,10 +276,12 @@ exports.fromOscPacket = (buffer, strict) ->
 #
 exports.toOscMessage = (message, strict) ->
     # the message must have addresses and arguments.
-    throw new Error "message must contain an address" if not message?.address?
+    address = if message?.address? then message.address else message
+    throw new Error "message must contain an address" if not typeof message == "string"
+    
     arguments = if message.arguments? then message.arguments else []
     
-    oscaddr = exports.toOscString message.address, strict
+    oscaddr = exports.toOscString address, strict
     osctype = ","
     oscarguments = []
     

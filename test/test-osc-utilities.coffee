@@ -119,6 +119,9 @@ exports["toIntegerBuffer throws when passed a non-number"] = ->
 
 exports["splitInteger fails when sent a buffer that's too small"] = ->
     assert.throws -> osc.splitInteger new Buffer 3, "Int32"
+    
+exports["splitOscArgument fails when given a bogus type"] = ->
+    assert.throws -> osc.splitOscArgument new Buffer 8, "bogus"
 
 exports["fromOscMessage with no type string works"] = ->
     translate = osc.fromOscMessage osc.toOscString "/stuff"
@@ -321,11 +324,29 @@ exports["toOscMessage with buffer argument works"] = ->
 exports["toOscMessage with float argument works"] = ->
     roundTripMessage [{value : 6, type : "float"}]
     
-
+exports["toOscMessage just a string works"] = ->
+    message = osc.fromOscMessage osc.toOscMessage "bleh"
+    assert.strictEqual message.address, "bleh"
+    assert.strictEqual message.arguments.length, 0
+    
 exports["toOscMessage with multiple arguments works"] = ->
     roundTripMessage ["str", 7, (new Buffer 30), 6]
     
+toOscMessageThrowsHelper = (arg) ->
+    assert.throws -> osc.toMessage(
+        address : "/addr"
+        arguments : [arg]
+    )
+   
+exports["toOscMessage fails with no address"] = ->
+    assert.throws -> osc.toOscMessage {arguments : []}
     
+exports["toOscMessage fails when string type is specified but wrong"] = ->
+    toOscMessageThrowsHelper(
+        value : 7
+        type : "string"
+    )
+
 roundTripBundle = (elems) ->
     oscMessage = {
         timetag : 0
