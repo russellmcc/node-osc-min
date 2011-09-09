@@ -154,6 +154,8 @@ exports.argToTypeCode = (arg) ->
     # if it's a buffer, use "b"
     if Buffer.isBuffer(value)
         return "b"
+        
+    throw new Error "I don't know what type this is supposed to be."
 
 # Splits out an argument from buffer.  Same thing as splitOscString but 
 # works for all argument types.
@@ -277,9 +279,10 @@ exports.fromOscPacket = (buffer, strict) ->
 exports.toOscMessage = (message, strict) ->
     # the message must have addresses and arguments.
     address = if message?.address? then message.address else message
-    throw new Error "message must contain an address" if not typeof message == "string"
-    
-    arguments = if message.arguments? then message.arguments else []
+    throw new Error "message must contain an address" if typeof address isnt "string"
+
+    arguments = if message?.args? then message.args else []
+    arguments = if message?.arguments? then message.arguments else arguments
     
     oscaddr = exports.toOscString address, strict
     osctype = ","
@@ -346,6 +349,7 @@ exports.toOscPacket = (bundleOrMessage, strict) ->
 # transform.
 #
 exports.applyMessageTranformerToBundle = (transform) -> (buffer) ->
+    
     # parse out the bundle-id and the tag, we don't want to change these
     { string, rest : buffer} = exports.splitOscString buffer
     
