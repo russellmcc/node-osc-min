@@ -12,4 +12,6 @@ task 'test-cov', 'run OSC tests with coverage check (requires development instal
       test.stdout.pipe process.stdout
       test.stderr.pipe process.stderr
       test.on "exit", () ->
-        child.exec "rm -rf lib-cov `ls lib/*.coffee | sed -e 's/.coffee/.js/'`"
+        child.exec "ls lib/*.coffee", (error, output) ->
+          output = output.replace /\.coffee/g, ".js"
+          child.exec "rm -rf lib-cov " + output
