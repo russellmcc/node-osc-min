@@ -458,6 +458,9 @@ exports["toOscBundle with no elements works"] = ->
 exports["toOscBundle with just a string works"] = ->
     roundTripBundle "/address"
 
+exports["toOscBundle with just a number fails"] = ->
+    assert.throws -> roundTripBundle 78
+
 exports["toOscBundle with one message works"] = ->
     roundTripBundle [{address : "/addr"}]
     

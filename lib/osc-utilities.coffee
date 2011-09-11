@@ -319,7 +319,7 @@ exports.toOscBundle = (bundle, strict) ->
     throw StrictError "bundles must have timetags." if strict and not bundle?.timetag?
     timetag =  bundle?.timetag ? 0
     elements = bundle?.elements ? []
-    if typeof elements is "string"
+    if not IsArray elements
       elemstr = elements
       elements = []
       elements.push elemstr
