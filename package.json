@@ -16,7 +16,7 @@
    ],
    "repository" : {
        "type": "git",
-       "url": "http://github.com/ghostfact/node-osc.git" 
+       "url": "http://github.com/ghostfact/node-osc-min.git" 
    },
    "dependencies" : [
        "binpack",
