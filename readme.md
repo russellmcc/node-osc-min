@@ -42,18 +42,18 @@ more examples are available in the `examples/` directory.
 ------
 ### .fromBuffer(buffer, [strict])
 takes a node.js Buffer of a complete _OSC Packet_ and 
-outputs the corresponding javascript object, or throws if the buffer is ill-formed.
+outputs the javascript representation, or throws if the buffer is ill-formed.
 
 `strict` is an optional parameter that makes the function fail more often.
 
 ----
 ### .toBuffer(object, [strict])
-takes a _OSC packet_ encoded in javascript as defined above and returns
-a node.js Buffer, or throws if the object is ill-formed.
+takes a _OSC packet_ javascript representation as defined below and returns
+a node.js Buffer, or throws if the representation is ill-formed.
 
 ----
 ### .toBuffer(address, arguments[], [strict])
-alternative syntax for above.  Assumes this is an _OSC Message_ as defined above, 
+alternative syntax for above.  Assumes this is an _OSC Message_ as defined below, 
 and `arguments` is an array of _OSC Arguments_ or single _OSC Argument_
 
 ----
@@ -72,8 +72,8 @@ composing `fromBuffer` and `toBuffer`:
     when `applyAddressTranform` might fail is if the address is malformed.
   - Accuracy - javascript represents numbers as 64-bit floats, so some
     OSC types will not be able to be represented accurately.  If accuracy
-    is important to you, then, you should never convert the OSC message to 
-    javascript
+    is important to you, then, you should never convert the OSC message to a
+    javascript representation.
 
 ----
 ### .applyMessageTransform(buffer, transform)
@@ -84,7 +84,7 @@ and outputs a new buffer with the new address.
 If the buffer encodes an osc-bundle, this applies the function to each message 
 in the bundle.
 
-See notes above for the Address transform for why you might want to use this.
+See notes above for applyAddressTransform for why you might want to use this.
 While this does parse and re-pack the messages, the bundle timetags are left
 in their accurate and prestine state.
 
