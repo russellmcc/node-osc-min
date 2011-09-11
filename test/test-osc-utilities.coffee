@@ -443,13 +443,20 @@ roundTripBundle = (elems) ->
     }
     roundTrip = osc.fromOscBundle (osc.toOscBundle oscMessage), true
     assert.strictEqual roundTrip?.timetag, 0
-    assert.strictEqual roundTrip?.elements?.length, elems.length
-    for i in [0...elems.length]
+    length = if typeof elems is "object" then elems.length else 1
+    assert.strictEqual roundTrip?.elements?.length, length
+    for i in [0...length]
+      if typeof elems is "object"
         assert.strictEqual roundTrip?.elements?[i]?.timetag, elems[i].timetag
         assert.strictEqual roundTrip?.elements?[i]?.address, elems[i].address
+      else 
+        assert.strictEqual roundTrip?.elements?[i]?.address, elems
         
 exports["toOscBundle with no elements works"] = ->
     roundTripBundle []
+
+exports["toOscBundle with just a string works"] = ->
+    roundTripBundle "/address"
 
 exports["toOscBundle with one message works"] = ->
     roundTripBundle [{address : "/addr"}]

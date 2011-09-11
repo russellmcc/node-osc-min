@@ -298,7 +298,7 @@ exports.toOscMessage = (message, strict) ->
     for arg in arguments
         typeCode = exports.argToTypeCode arg
         if typeCode?
-            value = if arg?.value? then arg.value else arg
+            value = arg?.value ? arg
             buff = exports.toOscArgument value, exports.oscTypeCodeToTypeString(typeCode), strict
             if buff?
                 oscarguments.push buff
@@ -317,8 +317,12 @@ exports.toOscMessage = (message, strict) ->
 exports.toOscBundle = (bundle, strict) ->
     # the bundle must have timetag and elements.
     throw StrictError "bundles must have timetags." if strict and not bundle?.timetag?
-    timetag =  if bundle?.timetag? then bundle.timetag else 0
-    elements = if bundle.elements? then bundle.elements else []
+    timetag =  bundle?.timetag ? 0
+    elements = bundle?.elements ? []
+    if typeof elements is "string"
+      elemstr = elements
+      elements = []
+      elements.push elemstr
     
     oscBundleTag = exports.toOscString "\#bundle"
     oscTimeTag = exports.toIntegerBuffer timetag, "UInt64"
