@@ -2,7 +2,7 @@
 # on a different port with all addresses redirected
 # to /redirect
 
-osc = require 'osc'
+osc = require 'osc-min'
 udp = require "dgram"
 
 if process.argv[2]?
@@ -11,10 +11,15 @@ else
     inport = 41234
 
 if process.argv[3]?
-    outport = parseInt process.arg[3]
+    outport = parseInt process.argv[3]
 else
     outport = 41235
 
+console.log "OSC redirecter running at http://localhost:" + inport
+console.log "redirecting messages to http://localhost:" + outport
+
+#~verbatim:examples~
+# ### A simple OSC redirecter
 sock = udp.createSocket "udp4", (msg, rinfo) ->
     try
         redirected = osc.applyAddressTransform msg, (address) -> "/redirect" + address
@@ -28,6 +33,3 @@ sock = udp.createSocket "udp4", (msg, rinfo) ->
     catch error
         console.log "error redirecting: " + error
 sock.bind inport
-
-console.log "OSC redirecter running at http://localhost:" + inport
-console.log "redirecting messages to http://localhost:" + outport

@@ -322,7 +322,11 @@ exports["toOscMessage with null argument throws"] = ->
 
 exports["toOscMessage with string argument works"] = ->
     roundTripMessage ["strr"]
-    
+
+buffeq = (buff, exp_buff) ->
+    assert.strictEqual buff.length, exp_buff.length
+    for i in [0...exp_buff.length]
+        assert.equal buff[i], exp_buff[i]
 
 exports["toOscMessage with bad layout works"] = ->
     oscMessage = {
@@ -335,7 +339,40 @@ exports["toOscMessage with bad layout works"] = ->
     assert.strictEqual roundTrip?.address, "/addr"
     assert.strictEqual roundTrip?.arguments?.length, 1
     assert.strictEqual roundTrip?.arguments?[0]?.value, "strr"
+
+exports["toOscMessage with single numeric argument works"] = ->
+    oscMessage = {
+        address : "/addr"
+        arguments : 13
+    }
+    roundTrip = osc.fromOscMessage (osc.toOscMessage oscMessage)
+    assert.strictEqual roundTrip?.address, "/addr"
+    assert.strictEqual roundTrip?.arguments?.length, 1
+    assert.strictEqual roundTrip?.arguments?[0]?.value, 13
+    assert.strictEqual roundTrip?.arguments?[0]?.type, "float"
     
+exports["toOscMessage with single blob argument works"] = ->
+    buff = new Buffer 18
+    oscMessage = {
+        address : "/addr"
+        arguments : buff
+    }
+    roundTrip = osc.fromOscMessage (osc.toOscMessage oscMessage)
+    assert.strictEqual roundTrip?.address, "/addr"
+    assert.strictEqual roundTrip?.arguments?.length, 1
+    buffeq roundTrip?.arguments?[0]?.value, buff
+    assert.strictEqual roundTrip?.arguments?[0]?.type, "blob"
+    
+exports["toOscMessage with single string argument works"] = ->
+    oscMessage = {
+        address : "/addr"
+        arguments : "strr"
+    }
+    roundTrip = osc.fromOscMessage (osc.toOscMessage oscMessage)
+    assert.strictEqual roundTrip?.address, "/addr"
+    assert.strictEqual roundTrip?.arguments?.length, 1
+    assert.strictEqual roundTrip?.arguments?[0]?.value, "strr"   
+    assert.strictEqual roundTrip?.arguments?[0]?.type, "string"
     
 exports["toOscMessage with integer argument works"] = ->
     roundTripMessage [8]
@@ -493,12 +530,6 @@ exports["addressTransform works with bundles"] = ->
     for i in [0...base.elements.length]
         assert.strictEqual transformed?.elements?[i]?.timetag, base.elements[i].timetag
         assert.strictEqual transformed?.elements?[i]?.address, "/prelude/" + base.elements[i].address
-    
-
-buffeq = (buff, exp_buff) ->
-    assert.equal buff.length, exp_buff.length
-    for i in [0...exp_buff.length]
-        assert.equal buff[i], exp_buff[i]
 
 exports["messageTransform works with identity function for single message"] = ->
     message =

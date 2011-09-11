@@ -23,7 +23,7 @@ binpack = require "binpack"
 # This is really only exported for TDD, but maybe it'll be useful
 # to someone else too.
 exports.concatenateBuffers = (buffers) ->
-    if not (((typeof buffers) is "object") and (buffers instanceof Array))
+    if not IsArray buffers
         throw new Error "concatenateBuffers must take an array of buffers"
         
     for buffer in buffers
@@ -281,9 +281,15 @@ exports.toOscMessage = (message, strict) ->
     address = if message?.address? then message.address else message
     throw new Error "message must contain an address" if typeof address isnt "string"
 
-    arguments = if message?.args? then message.args else []
-    arguments = if message?.arguments? then message.arguments else arguments
+    arguments = message?.args ? []
+    arguments = message?.arguments ? arguments
     
+    # pack single arguments
+    if not IsArray arguments
+        old_arg = arguments
+        arguments = []
+        arguments[0] = old_arg
+      
     oscaddr = exports.toOscString address, strict
     osctype = ","
     oscarguments = []
@@ -435,6 +441,11 @@ exports.messageTransform = (transform) -> (buffer) ->
     exports.toOscMessage transform message
     
 ## Private utilities
+
+#
+# is it an array?
+#
+IsArray = (arr) -> (((typeof arr) is "object") and (arr instanceof Array))
 
 #
 # An error that only throws when we're in strict mode.

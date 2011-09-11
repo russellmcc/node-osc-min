@@ -1,12 +1,12 @@
 # Same thing as the oscheartbeat example but with oscbundles.
 
-osc = require 'osc'
+osc = require 'osc-min'
 dgram = require "dgram"
 
 udp = dgram.createSocket "udp4"
 
 if process.argv[2]?
-    outport = parseInt process.arg[2]
+    outport = parseInt process.argv[2]
 else
     outport = 41234
 
@@ -16,18 +16,18 @@ sendHeartbeat = () ->
         elements : [
             {
                 address : "/p1"
-                arguments : [12]
+                arguments : new Buffer "beat"
             }
             {
                 address : "/p2"
-                arguments : ["string"]
+                arguments : "string"
             }
             {
                 timetag: 34567
                 elements : [
                     {
                         address : "/p3"
-                        arguments : [new Buffer "beat"]
+                        arguments : 12
                     }
                 ]
             }

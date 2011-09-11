@@ -1,5 +1,5 @@
 {
-   "name": "osc",
+   "name": "osc-min",
    "version": "0.0.0",
    "main": "lib/index",
    "author": {
@@ -7,7 +7,7 @@
        "email": "russell.mcclellan@gmail.com",
        "url" : "http://www.ghostfact.com"
    },
-   "description": "Utilities for open sound control for node.js",
+   "description": "Simple utilities for open sound control in node.js",
    "keywords": [
        "open sound control",
        "OSC",
@@ -23,7 +23,8 @@
        "coffee-script"
    ],
    "devDependencies" : [
-       "expresso"
+       "expresso",
+       "docket"
    ],
    "directories": {
        "lib": "lib", 
@@ -34,6 +35,7 @@
    },
    "scripts": {
        "test" : "cake test",
-       "coverage" : "cake test-cov"
+       "coverage" : "cake coverage",
+       "doc" : "cake doc"
    }
 }

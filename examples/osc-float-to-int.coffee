@@ -1,7 +1,7 @@
 # This listens for osc messages and rebroadcasts them
 # with all the floats converted to ints.
 
-osc = require 'osc'
+osc = require 'osc-min'
 udp = require "dgram"
 
 if process.argv[2]?
@@ -10,7 +10,7 @@ else
     inport = 41234
 
 if process.argv[3]?
-    outport = parseInt process.arg[3]
+    outport = parseInt process.argv[3]
 else
     outport = 41235
 
