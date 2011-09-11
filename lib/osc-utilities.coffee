@@ -22,13 +22,13 @@ binpack = require "binpack"
 #
 # This is really only exported for TDD, but maybe it'll be useful
 # to someone else too.
-exports.concatenateBuffers = (buffers) ->
+exports.concat = (buffers) ->
     if not IsArray buffers
-        throw new Error "concatenateBuffers must take an array of buffers"
+        throw new Error "concat must take an array of buffers"
         
     for buffer in buffers
         if not Buffer.isBuffer(buffer)
-            throw new Error "concatenateBuffers must take an array of buffers"
+            throw new Error "concat must take an array of buffers"
     
     sumLength = 0
     sumLength += buffer.length for buffer in buffers
@@ -189,7 +189,7 @@ exports.toOscArgument = (value, type, strict) ->
         when "blob"
             throw new Error "expected blob" if not Buffer.isBuffer value
             size = exports.toIntegerBuffer value.length
-            exports.concatenateBuffers [size, value]
+            exports.concat [size, value]
         when "float"
             throw new Error "expected number" if typeof value isnt "number"
             binpack.packFloat32 value, "big"
@@ -308,8 +308,8 @@ exports.toOscMessage = (message, strict) ->
     osctype = exports.toOscString osctype
     
     # bundle everything together.
-    allArgs = exports.concatenateBuffers oscarguments
-    exports.concatenateBuffers [oscaddr, osctype, allArgs]
+    allArgs = exports.concat oscarguments
+    exports.concat [oscaddr, osctype, allArgs]
 
 #
 # convert a javascript format bundle into an osc buffer
@@ -331,12 +331,12 @@ exports.toOscBundle = (bundle, strict) ->
         
             # okay, pack in the size.
             size = exports.toIntegerBuffer buff.length
-            oscElems.push exports.concatenateBuffers [size, buff]
+            oscElems.push exports.concat [size, buff]
         catch e
             null
             
-    allElems = exports.concatenateBuffers oscElems    
-    exports.concatenateBuffers [oscBundleTag, oscTimeTag, allElems]
+    allElems = exports.concat oscElems    
+    exports.concat [oscBundleTag, oscTimeTag, allElems]
     
 # convert a javascript format bundle or message into a buffer
 exports.toOscPacket = (bundleOrMessage, strict) ->
@@ -427,7 +427,7 @@ exports.addressTransform = (transform) -> (buffer) ->
     string = transform string
     
     # re-concatenate
-    exports.concatenateBuffers [
+    exports.concat [
         exports.toOscString string
         rest
     ]

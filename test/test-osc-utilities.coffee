@@ -108,11 +108,11 @@ exports["splitOscString strict succeeds for strings with valid padding"] = ->
 exports["splitOscString strict fails for string with invalid padding"] = ->
     assert.throws -> osc.splitOscString (new Buffer "testing it\u0000aaaaa"), true
 
-exports["concatenateBuffers throws when passed a single buffer"] = ->
-    assert.throws -> osc.concatenateBuffers new Buffer "test"
+exports["concat throws when passed a single buffer"] = ->
+    assert.throws -> osc.concat new Buffer "test"
 
-exports["concatenateBuffers throws when passed an array of non-buffers"] = ->
-    assert.throws -> osc.concatenateBuffers ["bleh"]
+exports["concat throws when passed an array of non-buffers"] = ->
+    assert.throws -> osc.concat ["bleh"]
 
 exports["toIntegerBuffer throws when passed a non-number"] = ->
     assert.throws -> osc.toIntegerBuffer "abcdefg"
@@ -143,7 +143,7 @@ exports["fromOscMessage with string argument works"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString ",s"
     oscarg = osc.toOscString "argu"
-    translate = osc.fromOscMessage osc.concatenateBuffers [oscaddr, osctype, oscarg]
+    translate = osc.fromOscMessage osc.concat [oscaddr, osctype, oscarg]
     assert.strictEqual translate?.address, "/stuff"
     assert.strictEqual translate?.arguments?[0]?.type, "string"
     assert.strictEqual translate?.arguments?[0]?.value, "argu"
@@ -152,8 +152,8 @@ exports["fromOscMessage with string argument works"] = ->
 exports["fromOscMessage with blob argument works"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString ",b"
-    oscarg = osc.concatenateBuffers [(osc.toIntegerBuffer 4), new Buffer "argu"]
-    translate = osc.fromOscMessage osc.concatenateBuffers [oscaddr, osctype, oscarg]
+    oscarg = osc.concat [(osc.toIntegerBuffer 4), new Buffer "argu"]
+    translate = osc.fromOscMessage osc.concat [oscaddr, osctype, oscarg]
     assert.strictEqual translate?.address, "/stuff"
     assert.strictEqual translate?.arguments?[0]?.type, "blob"
     assert.strictEqual (translate?.arguments?[0]?.value?.toString "utf8"), "argu"
@@ -163,7 +163,7 @@ exports["fromOscMessage with integer argument works"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString ",i"
     oscarg = osc.toIntegerBuffer 888
-    translate = osc.fromOscMessage osc.concatenateBuffers [oscaddr, osctype, oscarg]
+    translate = osc.fromOscMessage osc.concat [oscaddr, osctype, oscarg]
     assert.strictEqual translate?.address, "/stuff"
     assert.strictEqual translate?.arguments?[0]?.type, "integer"
     assert.strictEqual (translate?.arguments?[0]?.value), 888
@@ -174,11 +174,11 @@ exports["fromOscMessage with multiple arguments works."] = ->
     osctype = osc.toOscString ",sbi"
     oscargs = [
                 (osc.toOscString "argu")
-                (osc.concatenateBuffers [(osc.toIntegerBuffer 4), new Buffer "argu"])
+                (osc.concat [(osc.toIntegerBuffer 4), new Buffer "argu"])
                 (osc.toIntegerBuffer 888)
     ]
 
-    oscbuffer = osc.concatenateBuffers [oscaddr, osctype, (osc.concatenateBuffers oscargs)]
+    oscbuffer = osc.concat [oscaddr, osctype, (osc.concat oscargs)]
     translate = osc.fromOscMessage oscbuffer
     assert.strictEqual translate?.address, "/stuff"
     assert.strictEqual translate?.arguments?[0]?.type, "string"
@@ -188,12 +188,12 @@ exports["fromOscMessage strict fails if type string has no comma"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString "fake"
     assert.throws -> 
-        osc.fromOscMessage (osc.concatenateBuffers [oscaddr, osctype]), true
+        osc.fromOscMessage (osc.concat [oscaddr, osctype]), true
         
 exports["fromOscMessage non-strict works if type string has no comma"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString "fake"
-    message = osc.fromOscMessage (osc.concatenateBuffers [oscaddr, osctype])
+    message = osc.fromOscMessage (osc.concat [oscaddr, osctype])
     assert.strictEqual message.address, "/stuff"
     assert.strictEqual message.arguments.length, 0
 
@@ -201,13 +201,13 @@ exports["fromOscMessage strict fails if type address doesn't begin with /"] = ->
     oscaddr = osc.toOscString "stuff"
     osctype = osc.toOscString ","
     assert.throws -> 
-        osc.fromOscMessage (osc.concatenateBuffers [oscaddr, osctype]), true
+        osc.fromOscMessage (osc.concat [oscaddr, osctype]), true
     
         
 exports["fromOscBundle works with no messages"] = ->
     oscbundle = osc.toOscString "#bundle"
     osctimetag = osc.toIntegerBuffer 0, "UInt64"
-    buffer = osc.concatenateBuffers [oscbundle, osctimetag]
+    buffer = osc.concat [oscbundle, osctimetag]
     translate = osc.fromOscBundle buffer
     assert.strictEqual translate?.timetag, 0
     assert.deepEqual translate?.elements, []
@@ -218,9 +218,9 @@ exports["fromOscBundle works with single message"] = ->
     osctimetag = osc.toIntegerBuffer 0, "UInt64"
     oscaddr = osc.toOscString "/addr"
     osctype = osc.toOscString ","
-    oscmessage = osc.concatenateBuffers [oscaddr, osctype]
+    oscmessage = osc.concat [oscaddr, osctype]
     osclen = osc.toIntegerBuffer oscmessage.length
-    buffer = osc.concatenateBuffers [oscbundle, osctimetag, osclen, oscmessage]
+    buffer = osc.concat [oscbundle, osctimetag, osclen, oscmessage]
     translate = osc.fromOscBundle buffer
     assert.strictEqual translate?.timetag, 0
     assert.strictEqual translate?.elements?.length, 1
@@ -232,13 +232,13 @@ exports["fromOscBundle works with multiple messages"] = ->
     osctimetag = osc.toIntegerBuffer 0, "UInt64"
     oscaddr1 = osc.toOscString "/addr"
     osctype1 = osc.toOscString ","
-    oscmessage1 = osc.concatenateBuffers [oscaddr1, osctype1]
+    oscmessage1 = osc.concat [oscaddr1, osctype1]
     osclen1 = osc.toIntegerBuffer oscmessage1.length
     oscaddr2 = osc.toOscString "/addr2"
     osctype2 = osc.toOscString ","
-    oscmessage2 = osc.concatenateBuffers [oscaddr2, osctype2]
+    oscmessage2 = osc.concat [oscaddr2, osctype2]
     osclen2 = osc.toIntegerBuffer oscmessage2.length
-    buffer = osc.concatenateBuffers [oscbundle, osctimetag, osclen1, oscmessage1, osclen2, oscmessage2]
+    buffer = osc.concat [oscbundle, osctimetag, osclen1, oscmessage1, osclen2, oscmessage2]
     translate = osc.fromOscBundle buffer
     assert.strictEqual translate?.timetag, 0
     assert.strictEqual translate?.elements?.length, 2
@@ -251,13 +251,13 @@ exports["fromOscBundle works with nested bundles"] = ->
     osctimetag = osc.toIntegerBuffer 0, "UInt64"
     oscaddr1 = osc.toOscString "/addr"
     osctype1 = osc.toOscString ","
-    oscmessage1 = osc.concatenateBuffers [oscaddr1, osctype1]
+    oscmessage1 = osc.concat [oscaddr1, osctype1]
     osclen1 = osc.toIntegerBuffer oscmessage1.length
     oscbundle2 = osc.toOscString "#bundle"
     osctimetag2 = osc.toIntegerBuffer 0, "UInt64"
-    oscmessage2 = osc.concatenateBuffers [oscbundle2, osctimetag2]
+    oscmessage2 = osc.concat [oscbundle2, osctimetag2]
     osclen2 = osc.toIntegerBuffer oscmessage2.length
-    buffer = osc.concatenateBuffers [oscbundle, osctimetag, osclen1, oscmessage1, osclen2, oscmessage2]
+    buffer = osc.concat [oscbundle, osctimetag, osclen1, oscmessage1, osclen2, oscmessage2]
     translate = osc.fromOscBundle buffer
     assert.strictEqual translate?.timetag, 0
     assert.strictEqual translate?.elements?.length, 2
@@ -269,13 +269,13 @@ exports["fromOscBundle works with non-understood messages"] = ->
     osctimetag = osc.toIntegerBuffer 0, "UInt64"
     oscaddr1 = osc.toOscString "/addr"
     osctype1 = osc.toOscString ","
-    oscmessage1 = osc.concatenateBuffers [oscaddr1, osctype1]
+    oscmessage1 = osc.concat [oscaddr1, osctype1]
     osclen1 = osc.toIntegerBuffer oscmessage1.length
     oscaddr2 = osc.toOscString "/addr2"
     osctype2 = osc.toOscString ",α"
-    oscmessage2 = osc.concatenateBuffers [oscaddr2, osctype2]
+    oscmessage2 = osc.concat [oscaddr2, osctype2]
     osclen2 = osc.toIntegerBuffer oscmessage2.length
-    buffer = osc.concatenateBuffers [oscbundle, osctimetag, osclen1, oscmessage1, osclen2, oscmessage2]
+    buffer = osc.concat [oscbundle, osctimetag, osclen1, oscmessage1, osclen2, oscmessage2]
     translate = osc.fromOscBundle buffer
     assert.strictEqual translate?.timetag, 0
     assert.strictEqual translate?.elements?.length, 1
@@ -286,7 +286,7 @@ exports["fromOscBundle fails with bad bundle ID"] = ->
     assert.throws -> osc.fromOscBundle oscbundle
 
 exports["fromOscBundle fails with ridiculous sizes"] = ->
-    oscbundle = osc.concatenateBuffers [
+    oscbundle = osc.concat [
         osc.toOscString "#bundle"
         osc.toIntegerBuffer 1234567, "Int64"
         osc.toIntegerBuffer 999999
@@ -503,10 +503,10 @@ exports["identity applyTransform works with a simple bundle"] = ->
 
 exports["applyMessageTranformerToBundle fails on bundle without tag"] = ->
     func = osc.applyMessageTranformerToBundle ((a) -> a)
-    assert.throws -> func osc.concatenateBuffers [osc.toOscString "#grundle", osc.toIntegerBuffer 0, "Int64"]
+    assert.throws -> func osc.concat [osc.toOscString "#grundle", osc.toIntegerBuffer 0, "Int64"]
 
 exports["addressTransform works with identity"] = ->
-    testBuffer = osc.concatenateBuffers [
+    testBuffer = osc.concat [
         osc.toOscString "/message"
         new Buffer "gobblegobblewillsnever\u0000parse blah lbha"
     ]
