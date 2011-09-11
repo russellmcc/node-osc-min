@@ -4,34 +4,56 @@ _simple utilities for open sound control in node.js_
 
 This package provides some node.js utilities for working with 
 [OSC](http://opensoundcontrol.org/), a format for sound and systems control.  
-Here we implement the [OSC 1.0][spec] specification.  
+Here we implement the [OSC 1.0][spec] specification.  OSC is a transport-independent
+protocol, so we don't provide any server objects, as you should be able to 
+use OSC over any transport you like.  The most common is probably udp, but tcp
+is not unheard of.
 
 ----
 ## Examples
 ### A simple OSC printer
+```coffee-script
+sock = udp.createSocket "udp4", (msg, rinfo) ->
+    try
+        console.log osc.fromBuffer msg
+    catch error
+        console.log "invalid OSC packet"
+sock.bind inport
 
-          sock = udp.createSocket "udp4", (msg, rinfo) ->
-              try
-                  console.log osc.fromBuffer msg
-              catch error
-                  console.log "invalid OSC packet"
-          sock.bind inport
-          
+```
+### Send a bunch of arguments every two seconds
+```coffee-script
+sendHeartbeat = () ->
+    buf = osc.toBuffer(
+        address : "/heartbeat"
+        arguments : [
+            12
+            "sttttring"
+            new Buffer "beat"
+            {type : "integer", value : 7}
+        ]
+    )
+    
+    udp.send buf, 0, buf.length, outport, "localhost"
+    
+setInterval sendHeartbeat, 2000
+```
 ### A simple OSC redirecter
-
-          sock = udp.createSocket "udp4", (msg, rinfo) ->
-              try
-                  redirected = osc.applyAddressTransform msg, (address) -> "/redirect" + address
-                  sock.send(
-                      redirected,
-                      0,
-                      redirected.length,
-                      outport,
-                      "localhost"
-                  )
-              catch error
-                  console.log "error redirecting: " + error
-          sock.bind inport
+```coffee-script
+sock = udp.createSocket "udp4", (msg, rinfo) ->
+    try
+        redirected = osc.applyAddressTransform msg, (address) -> "/redirect" + address
+        sock.send(
+            redirected,
+            0,
+            redirected.length,
+            outport,
+            "localhost"
+        )
+    catch error
+        console.log "error redirecting: " + error
+sock.bind inport
+```
 
 
 more examples are available in the `examples/` directory.

@@ -10,7 +10,10 @@ if process.argv[2]?
     outport = parseInt process.argv[2]
 else
     outport = 41234
+console.log "sending heartbeat messages to http://localhost:" + outport
 
+#~verbatim:examples[1]~
+#### Send a bunch of arguments every two seconds
 sendHeartbeat = () ->
     buf = osc.toBuffer(
         address : "/heartbeat"
@@ -25,5 +28,3 @@ sendHeartbeat = () ->
     udp.send buf, 0, buf.length, outport, "localhost"
     
 setInterval sendHeartbeat, 2000
-
-console.log "sending heartbeat messages to http://localhost:" + outport
