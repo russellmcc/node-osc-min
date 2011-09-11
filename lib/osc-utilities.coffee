@@ -128,73 +128,165 @@ exports.toIntegerBuffer = (number, type) ->
     throw new Error "cannot pack a non-number into an integer buffer" if typeof number isnt "number"
     binpack["pack" + type] number, "big"
 
-# convert a type code to a javascript typestring
-exports.oscTypeCodeToTypeString = (typeCode) ->
-    typeCodes[typeCode]
+# This mapping contains three fields for each type:
+#  - representation : the javascript string representation of this type.  see index.js
+#  - split : a function to split a buffer into a decoded value and the rest of the buffer.
+#  - toArg : a function that takes the representation of the type and outputs a buffer.
+oscTypeCodes =
+    s : { 
+        representation : "string"
+        split : (buffer, strict) ->
+            # just pass it through to splitOscString
+            split = exports.splitOscString buffer, strict
+            {value : split.string, rest : split.rest}
+        toArg : (value, strict) ->
+            throw new Error "expected string" if typeof value isnt "string"
+            exports.toOscString value, strict
+    }
+    i : { 
+        representation : "integer"
+        split : (buffer, strict) -> 
+            split = exports.splitInteger buffer
+            {value : split.integer, rest : split.rest}
+        toArg : (value, strict) ->
+            throw new Error "expected number" if typeof value isnt "number"
+            exports.toIntegerBuffer value
+    }
+    t : {
+        representation : "timetag"
+        split : (buffer, strict) ->
+            split = exports.splitInteger buffer, "UInt64"
+            {value : split.integer, rest : split.rest}
+        toArg : (value, strict) ->
+            throw new Error "expected number" if typeof value isnt "number"
+            exports.toIntegerBuffer value, "UInt64"
+    }
+    f : {
+        representation : "float"
+        split : (buffer, strict) ->
+            value : (binpack.unpackFloat32 buffer[0...4], "big")
+            rest : buffer[4...(buffer.length)]
+        toArg : (value, strict) ->
+            throw new Error "expected number" if typeof value isnt "number"
+            binpack.packFloat32 value, "big"
+    }
+    d : {
+        representation : "double"
+        split : (buffer, strict) ->
+            value : (binpack.unpackFloat64 buffer[0...8], "big")
+            rest : buffer[8...(buffer.length)]
+        toArg : (value, strict) ->
+            throw new Error "expected number" if typeof value isnt "number"
+            binpack.packFloat64 value, "big"
+    }
+    b : {
+        representation : "blob"
+        split : (buffer, strict) ->
+            # not much to do here, first grab an 4 byte int from the buffer
+            {integer : length, rest : buffer}  = exports.splitInteger buffer
+            {value : buffer[0...length], rest : buffer[length...(buffer.length)]}
+        toArg : (value, strict) ->
+            throw new Error "expected node.js Buffer" if not Buffer.isBuffer value
+            size = exports.toIntegerBuffer value.length
+            exports.concat [size, value]   
+    }
+    T : {
+    representation : "true"
+    split : (buffer, strict) ->
+        rest : buffer
+        value : true
+    toArg : (value, strict) ->
+        throw new Error "true must be true" if not value and strict
+        new Buffer 0
+    }
+    F : {
+    representation : "false"
+    split : (buffer, strict) ->
+        rest : buffer
+        value : false
+    toArg : (value, strict) ->
+        throw new Error "false must be false" if value and strict
+        new Buffer 0
+    }
+    N : {
+    representation : "null"
+    split : (buffer, strict) ->
+        rest : buffer
+        value : null
+    toArg : (value, strict) ->
+        throw new Error "null must be false" if value and strict
+        new Buffer 0
+    }
+    I : {
+    representation : "bang"
+    split : (buffer, strict) ->
+        rest : buffer
+        value : "bang"
+    toArg : (value, strict) ->
+        new Buffer 0
+    }
     
-exports.argToTypeCode = (arg) ->
+# simple function that converts a type code into it's javascript
+# string representation.
+exports.oscTypeCodeToTypeString = (code) ->
+    oscTypeCodes[code]?.representation
+    
+# simple function that converts a javascript string representation
+# into its OSC type code.
+exports.typeStringToOscTypeCode = (rep) ->
+    for own code, {representation : str} of oscTypeCodes
+        return code if str is rep
+    return null
+    
+exports.argToTypeCode = (arg, strict) ->
     # if there's an explicit type annotation, back-translate that.
-    if arg?.type? and (typeof arg.type is "string")
-        for own code, str of typeCodes
-            return code if str is arg.type
+    return code if arg?.type? and (typeof arg.type is 'string') and (code = exports.typeStringToOscTypeCode arg.type)?
     
     value = if arg?.value? then arg.value else arg
     
     # now, we try to guess the type.
-    throw new Error "Argument has no value" if not value?
+    throw new Error 'Argument has no value' if strict and not value?
     
-    # if it's a string, use "s"
-    if typeof value is "string"
-        return "s"
+    # if it's a string, use 's'
+    if typeof value is 'string'
+        return 's'
     
-    # if it's a number, use "f" by default.
-    if typeof value is "number"
-        return "f"
+    # if it's a number, use 'f' by default.
+    if typeof value is 'number'
+        return 'f'
     
-    # if it's a buffer, use "b"
+    # if it's a buffer, use 'b'
     if Buffer.isBuffer(value)
-        return "b"
-        
+        return 'b'
+    
+    #### These are 1.1 specific types.
+    
+    # if it's a boolean, use 'T' or 'F'
+    if typeof value is 'boolean'
+        if value then return 'T' else return 'F'
+    
+    # if it's null, use 'N'
+    if value is null
+        return 'N'
+    
     throw new Error "I don't know what type this is supposed to be."
 
 # Splits out an argument from buffer.  Same thing as splitOscString but 
 # works for all argument types.
 exports.splitOscArgument = (buffer, type, strict) ->
-    switch type
-        when "string"
-            # just pass it through to splitOscString
-            split = exports.splitOscString buffer, strict
-            {value : split.string, rest : split.rest}
-        when "blob"
-            # not much to do here, first grab an 4 byte int from the buffer
-            {integer : length, rest : buffer}  = exports.splitInteger buffer
-            {value : buffer[0...length], rest : buffer[length...(buffer.length)]}
-        when "integer"
-            split = exports.splitInteger buffer
-            {value : split.integer, rest : split.rest}
-        when "float"
-            # unpack it.
-            {value : (binpack.unpackFloat32 buffer[0...4], "big"), rest : buffer[4...(buffer.length)]}            
-        else throw new Error "I don't understand how I'm supposed to unpack " + type
+    osctype = exports.typeStringToOscTypeCode type
+    if osctype?
+        oscTypeCodes[osctype].split buffer, strict
+    else
+        throw new Error "I don't understand how I'm supposed to unpack #{type}"
         
 # Create a buffer with the given javascript type
 exports.toOscArgument = (value, type, strict) ->
-    switch type
-        when "string"
-            throw new Error "expected string" if typeof value isnt "string"
-            exports.toOscString value, strict
-        when "integer"
-            throw new Error "expected number" if typeof value isnt "number"
-            exports.toIntegerBuffer value
-        when "blob"
-            throw new Error "expected blob" if not Buffer.isBuffer value
-            size = exports.toIntegerBuffer value.length
-            exports.concat [size, value]
-        when "float"
-            throw new Error "expected number" if typeof value isnt "number"
-            binpack.packFloat32 value, "big"
-        else
-            throw new Error "I don't know how to pack" + type
+    osctype = exports.typeStringToOscTypeCode type
+    if osctype?
+        oscTypeCodes[osctype].toArg value, strict
+    else
+        throw new Error "I don't know how to pack #{type}"
 
 #
 # translates an OSC message into a javascript representation.
@@ -203,8 +295,8 @@ exports.fromOscMessage = (buffer, strict) ->
     # break off the address
     { string : address, rest : buffer}  = exports.splitOscString buffer, strict
     
-    # technically, addresses have to start with "/".
-    throw StrictError "addresses must start with /" if strict and address[0] isnt "/"
+    # technically, addresses have to start with '/'.
+    throw StrictError 'addresses must start with /' if strict and address[0] isnt '/'
     
     # if there's no type string, this is technically illegal, but
     # the specification says we should accept this until all
@@ -216,10 +308,10 @@ exports.fromOscMessage = (buffer, strict) ->
     # if there's more data but no type string, we can't parse the arguments.    
     {string : types, rest : buffer} = exports.splitOscString buffer, strict
     
-    # if the first letter isn't a "," this isn't a valid type so we can't
+    # if the first letter isn't a ',' this isn't a valid type so we can't
     # parse the arguments.
-    if types[0] isnt ","
-        throw StrictError "Argument lists must begin with ," if strict
+    if types[0] isnt ','
+        throw StrictError 'Argument lists must begin with ,' if strict
         return {address : address, arguments : []} 
  
     # we don't need the comma anymore
@@ -230,7 +322,7 @@ exports.fromOscMessage = (buffer, strict) ->
     for type in types
         # by the standard, we have to ignore the whole message if we don't understand an argument
         typeString = exports.oscTypeCodeToTypeString type
-        throw new Error "I don't understand the argument code " + type if not typeString?
+        throw new Error "I don't understand the argument code #{type}" if not typeString?
         
         arg = exports.splitOscArgument buffer, typeString, strict
         
@@ -281,24 +373,30 @@ exports.toOscMessage = (message, strict) ->
     address = if message?.address? then message.address else message
     throw new Error "message must contain an address" if typeof address isnt "string"
 
-    arguments = message?.args ? []
-    arguments = message?.arguments ? arguments
+    arguments = message?.arguments
+    if (not arguments?) and (message?.args?)
+        arguments = message?.args
+    
+    if arguments is undefined
+        arguments = []
     
     # pack single arguments
     if not IsArray arguments
         old_arg = arguments
         arguments = []
         arguments[0] = old_arg
-      
+    
     oscaddr = exports.toOscString address, strict
     osctype = ","
     oscarguments = []
     
     # fill in arguments
     for arg in arguments
-        typeCode = exports.argToTypeCode arg
+        typeCode = exports.argToTypeCode arg, strict
         if typeCode?
-            value = arg?.value ? arg
+            value = arg?.value
+            if value is undefined
+                value = arg
             buff = exports.toOscArgument value, exports.oscTypeCodeToTypeString(typeCode), strict
             if buff?
                 oscarguments.push buff
@@ -456,14 +554,6 @@ IsArray = (arr) -> (((typeof arr) is "object") and (arr instanceof Array))
 #
 StrictError = (str) ->
     new Error "Strict Error: " + str
-
-# These are the supported type codes and their matching type strings
-typeCodes = {
-    "i" : "integer"
-    "f" : "float"
-    "s" : "string"
-    "b" : "blob"
-}
 
 # this private utility finds the amount of padding for a given string.
 padding = (str) ->

@@ -4,10 +4,12 @@ _simple utilities for open sound control in node.js_
 
 This package provides some node.js utilities for working with 
 [OSC](http://opensoundcontrol.org/), a format for sound and systems control.  
-Here we implement the [OSC 1.0][spec] specification.  OSC is a transport-independent
+Here we implement the [OSC 1.1][spec11] specification.  OSC is a transport-independent
 protocol, so we don't provide any server objects, as you should be able to 
 use OSC over any transport you like.  The most common is probably udp, but tcp
 is not unheard of.
+
+[spec11]: http://opensoundcontrol.org/spec-1_1
 
 ----
 ## Examples
@@ -134,17 +136,26 @@ See the [spec][spec] for more information on the OSC types.
               value : "value"
           }
 
-   Where the type is one of the following:
-
+   Where the `type` is one of the following:
    + `string` - string value
    + `float` - numeric value
    + `integer` - numeric value
    + `blob` - node.js Buffer value
+   + `true` - value is boolean true
+   + `false` - value is boolean false
+   + `null` - no value
+   + `bang` - no value (this is the `I` type tag)
+   + `timetag` - numeric value
 
+   Note that `type` is always a string - i.e. `"true"` rather than `true`.
+  
+   The following non-standard types are also supported:
+   + `double` - numeric value (encodes to a float64 value)
 
+   
    For messages sent to the `toBuffer` function, `type` is optional.
-   If the argument is not an object, it will be interpreted as the closest
-   available OSC type.
+   If the argument is not an object, it will be interpreted as either
+   `string`, `float`, or `blob`, depending on its javascript type.
 
 + An _OSC Bundle_ is represented as a javascript object with the following layout
 
@@ -158,5 +169,5 @@ See the [spec][spec] for more information on the OSC types.
   and elements is an array of either an _OSC Bundle_ or an _OSC Message_
   The `oscType` field is optional, but is always returned by api functions.
 
-[spec]: [http://opensoundcontrol.org/spec-1_0]
+[spec]: http://opensoundcontrol.org/spec-1_0
 
