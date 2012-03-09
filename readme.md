@@ -14,7 +14,7 @@ is not unheard of.
 ----
 ## Installation
  
-The easiest way to get osc-min is through [NPM][http://npmjs.org].
+The easiest way to get osc-min is through [NPM](http://npmjs.org).
 After install npm, you can install osc-min in the current directory with
  
 ```
