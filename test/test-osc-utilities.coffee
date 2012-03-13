@@ -3,7 +3,7 @@
 # actual unit tests.
 #
 
-osc = require "osc-utilities"
+osc = require "../lib/osc-utilities"
 assert = require "assert"
 
 # Basic string tests.
@@ -11,7 +11,7 @@ assert = require "assert"
 testString = (str, expected_len) ->
     str : str
     len : expected_len
-    
+
 testData = [
     testString("abc", 4)
     testString("abcd", 8)
@@ -27,46 +27,46 @@ testStringLength = (str, expected_len) ->
 exports["basic strings length"] = ->
     for data in testData
         testStringLength data.str, data.len
-    
+
 
 testStringRoundTrip = (str, strict) ->
     oscstr = osc.toOscString(str)
     str2 = osc.splitOscString(oscstr, strict)?.string
     assert.strictEqual(str, str2)
-    
+
 exports["basic strings round trip"] = ->
     for data in testData
         testStringRoundTrip data.str
-    
-    
+
+
 exports["non strings fail toOscString"] = ->
     assert.throws -> osc.toOscString(7)
-    
-    
+
+
 exports["strings with null characters don't fail toOscString by default"] = ->
     assert.notEqual(osc.toOscString("\u0000"), null)
-    
-    
+
+
 exports["strings with null characters fail toOscString in strict mode"] = ->
     assert.throws -> osc.toOscString("\u0000", true)
-    
-    
+
+
 exports["osc buffers with no null characters fail splitOscString in strict mode"] = ->
     assert.throws -> osc.splitOscString new Buffer("abc"), true
-    
+
 
 exports["osc buffers with non-null characters after a null character fail fromOscString in strict mode"] = ->
     assert.throws -> osc.fromOscString new Buffer("abc\u0000abcd"), true
-    
+
 
 exports["basic strings pass fromOscString in strict mode"] = ->
     for data in testData
         testStringRoundTrip data.str, true
-    
+
 
 exports["osc buffers with non-four length fail in strict mode"] = ->
     assert.throws -> osc.fromOscString new Buffer("abcd\u0000\u0000"), true
-    
+
 exports["splitOscString throws when passed a non-buffer"] = ->
     assert.throws -> osc.splitOscString "test"
 
@@ -74,7 +74,7 @@ exports["splitOscString of an osc-string matches the string"] = ->
     split = osc.splitOscString osc.toOscString "testing it"
     assert.strictEqual(split?.string, "testing it")
     assert.strictEqual(split?.rest?.length, 0)
-    
+
 
 exports["splitOscString works with an over-allocated buffer"] = ->
     buffer = osc.toOscString "testing it"
@@ -83,27 +83,27 @@ exports["splitOscString works with an over-allocated buffer"] = ->
     split = osc.splitOscString overallocated
     assert.strictEqual(split?.string, "testing it")
     assert.strictEqual(split?.rest?.length, 4)
-    
-    
+
+
 exports["splitOscString works with just a string by default"] = ->
     split = osc.splitOscString (new Buffer "testing it")
     assert.strictEqual(split?.string, "testing it")
     assert.strictEqual(split?.rest?.length, 0)
-    
-    
+
+
 exports["splitOscString strict fails for just a string"] = ->
     assert.throws -> osc.splitOscString (new Buffer "testing it"), true
-    
+
 
 exports["splitOscString strict fails for string with not enough padding"] = ->
     assert.throws -> osc.splitOscString (new Buffer "testing \u0000\u0000"), true
-    
+
 
 exports["splitOscString strict succeeds for strings with valid padding"] = ->
     split = osc.splitOscString (new Buffer "testing it\u0000\u0000aaaa"), true
     assert.strictEqual(split?.string, "testing it")
     assert.strictEqual(split?.rest?.length, 4)
-    
+
 
 exports["splitOscString strict fails for string with invalid padding"] = ->
     assert.throws -> osc.splitOscString (new Buffer "testing it\u0000aaaaa"), true
@@ -119,7 +119,7 @@ exports["toIntegerBuffer throws when passed a non-number"] = ->
 
 exports["splitInteger fails when sent a buffer that's too small"] = ->
     assert.throws -> osc.splitInteger new Buffer 3, "Int32"
-    
+
 exports["splitOscArgument fails when given a bogus type"] = ->
     assert.throws -> osc.splitOscArgument new Buffer 8, "bogus"
 
@@ -127,7 +127,7 @@ exports["fromOscMessage with no type string works"] = ->
     translate = osc.fromOscMessage osc.toOscString "/stuff"
     assert.strictEqual translate?.address, "/stuff"
     assert.deepEqual translate?.arguments, []
-    
+
 exports["fromOscMessage with type string and no arguments works"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString ","
@@ -137,7 +137,7 @@ exports["fromOscMessage with type string and no arguments works"] = ->
     translate = osc.fromOscMessage oscmessage
     assert.strictEqual translate?.address, "/stuff"
     assert.deepEqual translate?.arguments, []
-    
+
 exports["fromOscMessage with string argument works"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString ",s"
@@ -146,7 +146,7 @@ exports["fromOscMessage with string argument works"] = ->
     assert.strictEqual translate?.address, "/stuff"
     assert.strictEqual translate?.arguments?[0]?.type, "string"
     assert.strictEqual translate?.arguments?[0]?.value, "argu"
-    
+
 exports["fromOscMessage with true argument works"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString ",T"
@@ -154,7 +154,7 @@ exports["fromOscMessage with true argument works"] = ->
     assert.strictEqual translate?.address, "/stuff"
     assert.strictEqual translate?.arguments?[0]?.type, "true"
     assert.strictEqual translate?.arguments?[0]?.value, true
-    
+
 exports["fromOscMessage with false argument works"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString ",F"
@@ -187,8 +187,8 @@ exports["fromOscMessage with blob argument works"] = ->
     assert.strictEqual translate?.address, "/stuff"
     assert.strictEqual translate?.arguments?[0]?.type, "blob"
     assert.strictEqual (translate?.arguments?[0]?.value?.toString "utf8"), "argu"
-    
-    
+
+
 exports["fromOscMessage with integer argument works"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString ",i"
@@ -197,7 +197,7 @@ exports["fromOscMessage with integer argument works"] = ->
     assert.strictEqual translate?.address, "/stuff"
     assert.strictEqual translate?.arguments?[0]?.type, "integer"
     assert.strictEqual (translate?.arguments?[0]?.value), 888
- 
+
 exports["fromOscMessage with timetag argument works"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString ",t"
@@ -206,7 +206,7 @@ exports["fromOscMessage with timetag argument works"] = ->
     assert.strictEqual translate?.address, "/stuff"
     assert.strictEqual translate?.arguments?[0]?.type, "timetag"
     assert.strictEqual (translate?.arguments?[0]?.value), 8888
-    
+
 exports["fromOscMessage with multiple arguments works."] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString ",sbi"
@@ -225,9 +225,9 @@ exports["fromOscMessage with multiple arguments works."] = ->
 exports["fromOscMessage strict fails if type string has no comma"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString "fake"
-    assert.throws -> 
+    assert.throws ->
         osc.fromOscMessage (osc.concat [oscaddr, osctype]), true
-        
+
 exports["fromOscMessage non-strict works if type string has no comma"] = ->
     oscaddr = osc.toOscString "/stuff"
     osctype = osc.toOscString "fake"
@@ -238,10 +238,10 @@ exports["fromOscMessage non-strict works if type string has no comma"] = ->
 exports["fromOscMessage strict fails if type address doesn't begin with /"] = ->
     oscaddr = osc.toOscString "stuff"
     osctype = osc.toOscString ","
-    assert.throws -> 
+    assert.throws ->
         osc.fromOscMessage (osc.concat [oscaddr, osctype]), true
-    
-        
+
+
 exports["fromOscBundle works with no messages"] = ->
     oscbundle = osc.toOscString "#bundle"
     osctimetag = osc.toIntegerBuffer 0, "UInt64"
@@ -249,8 +249,8 @@ exports["fromOscBundle works with no messages"] = ->
     translate = osc.fromOscBundle buffer
     assert.strictEqual translate?.timetag, 0
     assert.deepEqual translate?.elements, []
-    
-    
+
+
 exports["fromOscBundle works with single message"] = ->
     oscbundle = osc.toOscString "#bundle"
     osctimetag = osc.toIntegerBuffer 0, "UInt64"
@@ -263,8 +263,8 @@ exports["fromOscBundle works with single message"] = ->
     assert.strictEqual translate?.timetag, 0
     assert.strictEqual translate?.elements?.length, 1
     assert.strictEqual translate?.elements?[0]?.address, "/addr"
-    
-    
+
+
 exports["fromOscBundle works with multiple messages"] = ->
     oscbundle = osc.toOscString "#bundle"
     osctimetag = osc.toIntegerBuffer 0, "UInt64"
@@ -282,8 +282,8 @@ exports["fromOscBundle works with multiple messages"] = ->
     assert.strictEqual translate?.elements?.length, 2
     assert.strictEqual translate?.elements?[0]?.address, "/addr"
     assert.strictEqual translate?.elements?[1]?.address, "/addr2"
-    
-    
+
+
 exports["fromOscBundle works with nested bundles"] = ->
     oscbundle = osc.toOscString "#bundle"
     osctimetag = osc.toIntegerBuffer 0, "UInt64"
@@ -301,7 +301,7 @@ exports["fromOscBundle works with nested bundles"] = ->
     assert.strictEqual translate?.elements?.length, 2
     assert.strictEqual translate?.elements?[0]?.address, "/addr"
     assert.strictEqual translate?.elements?[1]?.timetag, 0
-       
+
 exports["fromOscBundle works with non-understood messages"] = ->
     oscbundle = osc.toOscString "#bundle"
     osctimetag = osc.toIntegerBuffer 0, "UInt64"
@@ -344,7 +344,7 @@ roundTripMessage = (args) ->
         assert.strictEqual roundTrip?.arguments?[i]?.type, args[i].type if args[i]?.type?
         if Buffer.isBuffer comp
             for j in [0...comp.length]
-                assert.strictEqual roundTrip?.arguments?[i]?.value?[j], comp[j] 
+                assert.strictEqual roundTrip?.arguments?[i]?.value?[j], comp[j]
         else
             assert.strictEqual roundTrip?.arguments?[i]?.value, comp
 
@@ -354,7 +354,7 @@ exports["toOscArgument fails when given bogus type"] = ->
 # we tested fromOsc* manually, so just use roundtrip testing for toOsc*
 exports["toOscMessage with no arguments works"] = ->
     roundTripMessage []
-    
+
 exports["toOscMessage strict with null argument throws"] = ->
     assert.throws -> osc.toOscMessage {address : "/addr", arguments : [null]}, true
 
@@ -399,7 +399,7 @@ exports["toOscMessage with args shortcut works"] = ->
     assert.strictEqual roundTrip?.arguments?.length, 1
     assert.strictEqual roundTrip?.arguments?[0]?.value, 13
     assert.strictEqual roundTrip?.arguments?[0]?.type, "float"
-    
+
 exports["toOscMessage with single blob argument works"] = ->
     buff = new Buffer 18
     oscMessage = {
@@ -411,7 +411,7 @@ exports["toOscMessage with single blob argument works"] = ->
     assert.strictEqual roundTrip?.arguments?.length, 1
     buffeq roundTrip?.arguments?[0]?.value, buff
     assert.strictEqual roundTrip?.arguments?[0]?.type, "blob"
-    
+
 exports["toOscMessage with single string argument works"] = ->
     oscMessage = {
         address : "/addr"
@@ -420,12 +420,12 @@ exports["toOscMessage with single string argument works"] = ->
     roundTrip = osc.fromOscMessage (osc.toOscMessage oscMessage)
     assert.strictEqual roundTrip?.address, "/addr"
     assert.strictEqual roundTrip?.arguments?.length, 1
-    assert.strictEqual roundTrip?.arguments?[0]?.value, "strr"   
+    assert.strictEqual roundTrip?.arguments?[0]?.value, "strr"
     assert.strictEqual roundTrip?.arguments?[0]?.type, "string"
-    
+
 exports["toOscMessage with integer argument works"] = ->
     roundTripMessage [8]
-    
+
 exports["toOscMessage with buffer argument works"] = ->
     # buffer will have random contents, but that's okay.
     roundTripMessage [new Buffer 16]
@@ -441,13 +441,13 @@ exports["toOscMessage with type true works"] = ->
     assert.strictEqual roundTrip.arguments.length, 1
     assert.strictEqual roundTrip.arguments[0].value, true
     assert.strictEqual roundTrip.arguments[0].type, "true"
-    
+
 exports["toOscMessage with type false works"] = ->
     roundTrip = osc.fromOscMessage osc.toOscMessage {address: "/addr", arguments : false}
     assert.strictEqual roundTrip.arguments.length, 1
     assert.strictEqual roundTrip.arguments[0].value, false
     assert.strictEqual roundTrip.arguments[0].type, "false"
-    
+
 exports["toOscMessage with type bang argument works"] = ->
     roundTrip = osc.fromOscMessage osc.toOscMessage {address: "/addr", arguments : {type:"bang"}}
     assert.strictEqual roundTrip.arguments.length, 1
@@ -471,27 +471,27 @@ exports["toOscMessage with type null works"] = ->
 
 exports["toOscMessage with float argument works"] = ->
     roundTripMessage [{value : 6, type : "float"}]
-    
+
 exports["toOscMessage just a string works"] = ->
     message = osc.fromOscMessage osc.toOscMessage "bleh"
     assert.strictEqual message.address, "bleh"
     assert.strictEqual message.arguments.length, 0
-    
+
 exports["toOscMessage with multiple arguments works"] = ->
     roundTripMessage ["str", 7, (new Buffer 30), 6]
 
 exports["toOscMessage with integer argument works"] = ->
     roundTripMessage [{value : 7, type: "integer"}]
-    
+
 exports["toOscMessage fails with no address"] = ->
-    assert.throws -> osc.toOscMessage {arguments : []}    
-    
+    assert.throws -> osc.toOscMessage {arguments : []}
+
 toOscMessageThrowsHelper = (arg) ->
     assert.throws -> osc.toOscMessage(
         address : "/addr"
         arguments : [arg]
     )
-    
+
 exports["toOscMessage fails when string type is specified but wrong"] = ->
     toOscMessageThrowsHelper(
         value : 7
@@ -503,25 +503,25 @@ exports["toOscMessage fails when integer type is specified but wrong"] = ->
         value : "blah blah"
         type : "integer"
     )
-    
+
 exports["toOscMessage fails when float type is specified but wrong"] = ->
     toOscMessageThrowsHelper(
         value : "blah blah"
         type : "float"
     )
-    
+
 exports["toOscMessage fails when timetag type is specified but wrong"] = ->
     toOscMessageThrowsHelper(
         value : "blah blah"
         type : "timetag"
     )
-    
+
 exports["toOscMessage fails when double type is specified but wrong"] = ->
     toOscMessageThrowsHelper(
         value : "blah blah"
         type : "double"
     )
-    
+
 exports["toOscMessage fails when blob type is specified but wrong"] = ->
     toOscMessageThrowsHelper(
         value : "blah blah"
@@ -547,9 +547,9 @@ roundTripBundle = (elems) ->
       if typeof elems is "object"
         assert.strictEqual roundTrip?.elements?[i]?.timetag, elems[i].timetag
         assert.strictEqual roundTrip?.elements?[i]?.address, elems[i].address
-      else 
+      else
         assert.strictEqual roundTrip?.elements?[i]?.address, elems
-        
+
 exports["toOscBundle with no elements works"] = ->
     roundTripBundle []
 
@@ -561,7 +561,7 @@ exports["toOscBundle with just a number fails"] = ->
 
 exports["toOscBundle with one message works"] = ->
     roundTripBundle [{address : "/addr"}]
-    
+
 exports["toOscBundle with nested bundles works"] = ->
     roundTripBundle [{address : "/addr"}, {timetag : 0}]
 
@@ -575,7 +575,7 @@ exports["toOscBundle with bogus packets works"] = ->
 
 exports["toOscBundle strict fails without timetags"] = ->
     assert.throws -> osc.toOscBundle {elements :[]}, true
-    
+
 exports["identity applyTransform works with single message"] = ->
     testBuffer = osc.toOscString "/message"
     assert.strictEqual (osc.applyTransform testBuffer, (a) -> a), testBuffer
@@ -585,11 +585,11 @@ exports["nullary applyTransform works with single message"] = ->
     assert.strictEqual (osc.applyTransform testBuffer, (a) -> new Buffer 0).length, 0
 
 exports["toOscPacket works when explicitly set to bundle"] = ->
-    roundTrip = osc.fromOscBundle osc.toOscPacket {timetag: 0, oscType:"bundle", elements :[]}, true 
+    roundTrip = osc.fromOscBundle osc.toOscPacket {timetag: 0, oscType:"bundle", elements :[]}, true
     assert.strictEqual roundTrip.elements.length, 0
 
 exports["toOscPacket works when explicitly set to message"] = ->
-    roundTrip = osc.fromOscPacket osc.toOscPacket {address: "/bleh", oscType:"message", arguments :[]}, true 
+    roundTrip = osc.fromOscPacket osc.toOscPacket {address: "/bleh", oscType:"message", arguments :[]}, true
     assert.strictEqual roundTrip.arguments.length, 0
     assert.strictEqual roundTrip.address, "/bleh"
 
@@ -621,8 +621,8 @@ exports["addressTransform works with identity"] = ->
     transformed = osc.applyTransform testBuffer, osc.addressTransform((a) -> a)
     for i in [0...testBuffer.length]
         assert.equal transformed[i], testBuffer[i]
-    
-    
+
+
 exports["addressTransform works with bundles"] = ->
     base = {
         timetag : 0
@@ -645,8 +645,8 @@ exports["messageTransform works with identity function for single message"] = ->
         arguments: []
     buff = osc.toOscPacket message
     buffeq (osc.applyTransform buff, osc.messageTransform (a) -> a), buff
-    
-    
+
+
 exports["messageTransform works with bundles"] = ->
     message = {
         timetag : 0
@@ -657,5 +657,5 @@ exports["messageTransform works with bundles"] = ->
     }
     buff = osc.toOscPacket message
     buffeq (osc.applyTransform buff, osc.messageTransform (a) -> a), buff
-    
-    
+
+

@@ -1,6 +1,6 @@
 {
    "name": "osc-min",
-   "version": "0.0.2",
+   "version": "0.0.3",
    "main": "lib/index",
    "author": {
        "name" : "Russell McClellan",
@@ -18,20 +18,20 @@
        "type": "git",
        "url": "http://github.com/ghostfact/node-osc-min.git" 
    },
-   "dependencies" : [
-       "binpack",
-       "coffee-script"
-   ],
-   "devDependencies" : [
-       "expresso",
-       "docket>=0.0.3"
-   ],
+   "dependencies" : {
+       "binpack" : "*",
+       "coffee-script" : ">=1.2.0"
+   },
+   "devDependencies" : {
+       "expresso" : "*",
+       "docket" : ">=0.0.3"
+   },
    "directories": {
        "lib": "lib", 
        "examples" : "examples"
    },
    "engines": {
-       "node": ">=0.3.0"
+       "node": ">=0.6.0"
    },
    "scripts": {
        "test" : "cake test",
