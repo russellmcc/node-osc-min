@@ -373,25 +373,25 @@ exports.toOscMessage = (message, strict) ->
     address = if message?.address? then message.address else message
     throw new Error "message must contain an address" if typeof address isnt "string"
 
-    arguments = message?.arguments
-    if (not arguments?) and (message?.args?)
-        arguments = message?.args
+    args = message?.args
+    if (not args?) and (message?.args?)
+        args = message?.args
 
-    if arguments is undefined
-        arguments = []
+    if args is undefined
+        args = []
 
-    # pack single arguments
-    if not IsArray arguments
-        old_arg = arguments
-        arguments = []
-        arguments[0] = old_arg
+    # pack single args
+    if not IsArray args
+        old_arg = args
+        args = []
+        args[0] = old_arg
 
     oscaddr = exports.toOscString address, strict
     osctype = ","
-    oscarguments = []
+    oscargs = []
 
-    # fill in arguments
-    for arg in arguments
+    # fill in args
+    for arg in args
         typeCode = exports.argToTypeCode arg, strict
         if typeCode?
             value = arg?.value
@@ -399,14 +399,14 @@ exports.toOscMessage = (message, strict) ->
                 value = arg
             buff = exports.toOscArgument value, exports.oscTypeCodeToTypeString(typeCode), strict
             if buff?
-                oscarguments.push buff
+                oscargs.push buff
                 osctype += typeCode
 
     # convert the type tag into an oscString.
     osctype = exports.toOscString osctype
 
     # bundle everything together.
-    allArgs = exports.concat oscarguments
+    allArgs = exports.concat oscargs
     exports.concat [oscaddr, osctype, allArgs]
 
 #
