@@ -48,21 +48,21 @@ sock = udp.createSocket "udp4", (msg, rinfo) ->
 sock.bind inport
 
 ```
-### Send a bunch of arguments every two seconds
+### Send a bunch of args every two seconds
 ```coffee-script
 sendHeartbeat = () ->
     buf = osc.toBuffer(
         address : "/heartbeat"
-        arguments : [
+        args : [
             12
             "sttttring"
             new Buffer "beat"
             {type : "integer", value : 7}
         ]
     )
-    
+
     udp.send buf, 0, buf.length, outport, "localhost"
-    
+
 setInterval sendHeartbeat, 2000
 ```
 ### A simple OSC redirecter
@@ -101,9 +101,9 @@ takes a _OSC packet_ javascript representation as defined below and returns
 a node.js Buffer, or throws if the representation is ill-formed.
 
 ----
-### .toBuffer(address, arguments[], [strict])
+### .toBuffer(address, args[], [strict])
 alternative syntax for above.  Assumes this is an _OSC Message_ as defined below, 
-and `arguments` is an array of _OSC Arguments_ or single _OSC Argument_
+and `args` is an array of _OSC Arguments_ or single _OSC Argument_
 
 ----
 ### .applyAddressTransform(buffer, transform)
@@ -148,11 +148,11 @@ See the [spec][spec] for more information on the OSC types.
           {
               oscType : "message"
               address : "/address/pattern/might/have/wildcards"
-              arguments : [arg1,arg2]
+              args : [arg1,arg2]
           }
 
-   Where arguments is an array of _OSC Arguments_.  `oscType` is optional.
-   `arguments` can be a single element.
+   Where args is an array of _OSC Arguments_.  `oscType` is optional.
+   `args` can be a single element.
 
 + An _OSC Argument_ is represented as a javascript object with the following layout:
 

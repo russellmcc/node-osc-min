@@ -16,26 +16,26 @@ sendHeartbeat = () ->
         elements : [
             {
                 address : "/p1"
-                arguments : new Buffer "beat"
+                args : new Buffer "beat"
             }
             {
                 address : "/p2"
-                arguments : "string"
+                args : "string"
             }
             {
                 timetag: 34567
                 elements : [
                     {
                         address : "/p3"
-                        arguments : 12
+                        args : 12
                     }
                 ]
             }
         ]
     )
-    
+
     udp.send buf, 0, buf.length, outport, "localhost"
-    
+
 setInterval sendHeartbeat, 2000
 
 console.log "sending heartbeat messages to http://localhost:" + outport

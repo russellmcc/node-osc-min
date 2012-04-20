@@ -1,4 +1,4 @@
-# This example simply sends a message with several parameter types 
+# This example simply sends a message with several parameter types
 # every two seconds to port 41234
 
 osc = require 'osc-min'
@@ -13,18 +13,18 @@ else
 console.log "sending heartbeat messages to http://localhost:" + outport
 
 #~verbatim:examples[1]~
-#### Send a bunch of arguments every two seconds
+#### Send a bunch of args every two seconds
 sendHeartbeat = () ->
     buf = osc.toBuffer(
         address : "/heartbeat"
-        arguments : [
+        args : [
             12
             "sttttring"
             new Buffer "beat"
             {type : "integer", value : 7}
         ]
     )
-    
+
     udp.send buf, 0, buf.length, outport, "localhost"
-    
+
 setInterval sendHeartbeat, 2000

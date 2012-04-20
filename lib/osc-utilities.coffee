@@ -303,7 +303,7 @@ exports.fromOscMessage = (buffer, strict) ->
     # implementations that send message without a type string are fixed.
     # this will never happen, so we should accept this, even in
     # strict mode.
-    return {address : address, arguments : []} if not buffer.length
+    return {address : address, args : []} if not buffer.length
 
     # if there's more data but no type string, we can't parse the arguments.
     {string : types, rest : buffer} = exports.splitOscString buffer, strict
@@ -312,7 +312,7 @@ exports.fromOscMessage = (buffer, strict) ->
     # parse the arguments.
     if types[0] isnt ','
         throw StrictError 'Argument lists must begin with ,' if strict
-        return {address : address, arguments : []}
+        return {address : address, args : []}
 
     # we don't need the comma anymore
     types = types[1..(types.length)]
@@ -335,7 +335,7 @@ exports.fromOscMessage = (buffer, strict) ->
             value : arg?.value
         )
 
-    {address : address, arguments : args, oscType : "message"}
+    {address : address, args : args, oscType : "message"}
 
 #
 # Try to parse an OSC bundle into a javascript object.

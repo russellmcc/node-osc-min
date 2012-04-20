@@ -15,7 +15,7 @@ else
     outport = 41235
 
 float_to_int = (message) ->
-    for arg in message.arguments
+    for arg in message.args
         if arg.type is "float"
             arg.type = "integer"
     message
