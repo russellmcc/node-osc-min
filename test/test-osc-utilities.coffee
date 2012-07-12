@@ -657,5 +657,3 @@ exports["messageTransform works with bundles"] = ->
     }
     buff = osc.toOscPacket message
     buffeq (osc.applyTransform buff, osc.messageTransform (a) -> a), buff
-
-
