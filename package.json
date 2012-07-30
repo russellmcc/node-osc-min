@@ -1,6 +1,6 @@
 {
   "name": "osc-min",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "main": "lib/index",
   "author": {
     "name": "Russell McClellan",
@@ -16,7 +16,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "http://github.com/ghostfact/node-osc-min.git"
+    "url": "http://github.com/russellmcc/node-osc-min.git"
   },
   "dependencies": {
     "binpack": "*",
