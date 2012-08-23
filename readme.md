@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/russellmcc/node-osc-min.png)](http://travis-ci.org/russellmcc/node-osc-min)
 # osc-min
 
 _simple utilities for open sound control in node.js_
