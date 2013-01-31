@@ -2,13 +2,15 @@ fs = require 'fs'
 child = require 'child_process'
 
 task 'test', 'run tests (requires development install)', (options) ->
-    test = child.spawn 'expresso', ['-I', './lib', 'test']
+    process.env['NODE_PATH'] = './lib/:$NODE_PATH'
+    test = child.spawn 'expresso', ['test']
     test.stdout.pipe process.stdout
     test.stderr.pipe process.stderr
 
 task 'coverage', 'run tests with coverage check (requires development install)', (options) ->
     compile = child.exec 'coffee -c lib', ->
-      test = child.spawn 'expresso', ['-I', './lib', '--cov', 'test']
+      process.env['NODE_PATH'] = './lib/:$NODE_PATH'
+      test = child.spawn 'expresso', ['--cov', 'test']
       test.stdout.pipe process.stdout
       test.stderr.pipe process.stderr
       test.on "exit", () ->
