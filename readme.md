@@ -54,9 +54,8 @@ sock = udp.createSocket("udp4", function(msg, rinfo) {
 sock.bind(inport);
 
 ```
-### Send a bunch of args every two seconds
+### Send a bunch of args every two seconds;
 ```javascript
-;
 
 
 sendHeartbeat = function() {
@@ -76,9 +75,8 @@ sendHeartbeat = function() {
 setInterval(sendHeartbeat, 2000);
 
 ```
-### A simple OSC redirecter
+### A simple OSC redirecter;
 ```javascript
-;
 
 
 sock = udp.createSocket("udp4", function(msg, rinfo) {
