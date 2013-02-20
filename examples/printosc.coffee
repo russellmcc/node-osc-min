@@ -8,6 +8,8 @@ else
 
 console.log "OSC listener running at http://localhost:" + inport
 
+`//~verbatim:examples[0]~
+//### A simple OSC printer`
 sock = udp.createSocket "udp4", (msg, rinfo) ->
     try
         console.log osc.fromBuffer msg

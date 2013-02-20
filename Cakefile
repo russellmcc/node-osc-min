@@ -19,5 +19,6 @@ task 'coverage', 'run tests with coverage check (requires development install)',
           child.exec "rm -rf lib-cov " + output
 
 task 'doc', 'create md and html doc files', (options) ->
-    child.exec 'docket lib/* examples/* -m'
-    child.exec 'docket lib/* examples/* -d doc_html'
+    child.exec 'coffee -b -c examples/*', ->
+      child.exec 'docket lib/* examples/* -m', ->
+        child.exec 'docket lib/* examples/* -d doc_html'

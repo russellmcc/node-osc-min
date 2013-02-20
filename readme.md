@@ -39,14 +39,16 @@ npm run-script coverage
 
 ----
 ## Examples
-### A simple OSC printer
+### A simple OSC printer;
 ```javascript
+
+
 sock = udp.createSocket("udp4", function(msg, rinfo) {
-    try {
-        return console.log(osc.fromBuffer(msg));
-    } catch (error) {
-        return console.log("invalid OSC packet");
-    }
+  try {
+    return console.log(osc.fromBuffer(msg));
+  } catch (error) {
+    return console.log("invalid OSC packet");
+  }
 });
 
 sock.bind(inport);
@@ -54,18 +56,21 @@ sock.bind(inport);
 ```
 ### Send a bunch of args every two seconds
 ```javascript
+;
+
+
 sendHeartbeat = function() {
-    var buf;
-    buf = osc.toBuffer({
-        address: "/heartbeat",
-        args: [
-            12, "sttttring", new Buffer("beat"), {
-                type: "integer",
-                value: 7
-            }
-        ]
-    });
-    return udp.send(buf, 0, buf.length, outport, "localhost");
+  var buf;
+  buf = osc.toBuffer({
+    address: "/heartbeat",
+    args: [
+      12, "sttttring", new Buffer("beat"), {
+        type: "integer",
+        value: 7
+      }
+    ]
+  });
+  return udp.send(buf, 0, buf.length, outport, "localhost");
 };
 
 setInterval(sendHeartbeat, 2000);
@@ -73,16 +78,19 @@ setInterval(sendHeartbeat, 2000);
 ```
 ### A simple OSC redirecter
 ```javascript
+;
+
+
 sock = udp.createSocket("udp4", function(msg, rinfo) {
-    var redirected;
-    try {
-        redirected = osc.applyAddressTransform(msg, function(address) {
-            return "/redirect" + address;
-        });
-        return sock.send(redirected, 0, redirected.length, outport, "localhost");
-    } catch (error) {
-        return console.log("error redirecting: " + error);
-    }
+  var redirected;
+  try {
+    redirected = osc.applyAddressTransform(msg, function(address) {
+      return "/redirect" + address;
+    });
+    return sock.send(redirected, 0, redirected.length, outport, "localhost");
+  } catch (error) {
+    return console.log("error redirecting: " + error);
+  }
 });
 
 sock.bind(inport);
