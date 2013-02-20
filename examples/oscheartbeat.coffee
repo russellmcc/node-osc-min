@@ -12,10 +12,8 @@ else
     outport = 41234
 console.log "sending heartbeat messages to http://localhost:" + outport
 
-`
-//~verbatim:examples[1]~
-//### Send a bunch of args every two seconds
-`
+`//~verbatim:examples[1]~
+//### Send a bunch of args every two seconds`
 sendHeartbeat = () ->
     buf = osc.toBuffer(
         address : "/heartbeat"
