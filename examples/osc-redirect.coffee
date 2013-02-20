@@ -18,8 +18,6 @@ else
 console.log "OSC redirecter running at http://localhost:" + inport
 console.log "redirecting messages to http://localhost:" + outport
 
-#~verbatim:examples[2]~
-#### A simple OSC redirecter
 sock = udp.createSocket "udp4", (msg, rinfo) ->
     try
         redirected = osc.applyAddressTransform msg, (address) -> "/redirect" + address
