@@ -547,7 +547,7 @@ exports.messageTransform = (transform) -> (buffer) ->
 #
 # is it an array?
 #
-IsArray = (arr) -> (((typeof arr) is "object") and (arr instanceof Array))
+IsArray = Array.isArray
 
 #
 # An error that only throws when we're in strict mode.
