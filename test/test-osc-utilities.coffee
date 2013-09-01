@@ -2,8 +2,11 @@
 # This file was used for TDD and as such probably has limited utility as
 # actual unit tests.
 #
+try
+  osc = require '../lib-cov/osc-utilities'
+catch
+  osc = require '../lib/osc-utilities'
 
-osc = require "../lib/osc-utilities"
 assert = require "assert"
 
 # Basic string tests.
