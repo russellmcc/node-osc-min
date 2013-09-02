@@ -42,11 +42,12 @@ npm run-script coverage
 ### A simple OSC printer;
 ```javascript
 
-
 sock = udp.createSocket("udp4", function(msg, rinfo) {
+  var error;
   try {
     return console.log(osc.fromBuffer(msg));
-  } catch (error) {
+  } catch (_error) {
+    error = _error;
     return console.log("invalid OSC packet");
   }
 });
@@ -56,7 +57,6 @@ sock.bind(inport);
 ```
 ### Send a bunch of args every two seconds;
 ```javascript
-
 
 sendHeartbeat = function() {
   var buf;
@@ -78,15 +78,15 @@ setInterval(sendHeartbeat, 2000);
 ### A simple OSC redirecter;
 ```javascript
 
-
 sock = udp.createSocket("udp4", function(msg, rinfo) {
-  var redirected;
+  var error, redirected;
   try {
     redirected = osc.applyAddressTransform(msg, function(address) {
       return "/redirect" + address;
     });
     return sock.send(redirected, 0, redirected.length, outport, "localhost");
-  } catch (error) {
+  } catch (_error) {
+    error = _error;
     return console.log("error redirecting: " + error);
   }
 });
@@ -184,6 +184,7 @@ See the [spec][spec] for more information on the OSC types.
    + `null` - no value
    + `bang` - no value (this is the `I` type tag)
    + `timetag` - numeric value
+   + `array` - array of _OSC Arguments_
 
    Note that `type` is always a string - i.e. `"true"` rather than `true`.
   
@@ -193,7 +194,8 @@ See the [spec][spec] for more information on the OSC types.
    
    For messages sent to the `toBuffer` function, `type` is optional.
    If the argument is not an object, it will be interpreted as either
-   `string`, `float`, or `blob`, depending on its javascript type.
+   `string`, `float`, `array` or `blob`, depending on its javascript type
+   (String, Number, Array, Buffer, respectively)
 
 + An _OSC Bundle_ is represented as a javascript object with the following layout
 

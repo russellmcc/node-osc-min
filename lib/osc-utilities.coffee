@@ -331,8 +331,31 @@ exports.fromOscMessage = (buffer, strict) ->
   types = types[1..(types.length)]
 
   args = []
+
+  # we use this to build up array arguments.
+  # arrayStack[-1] is always the currently contructing
+  # array.
+  arrayStack = [args]
+
   # grab each argument.
   for type in types
+    # special case: we're beginning construction of an array.
+    if type is '['
+      arrayStack.push([])
+      continue
+
+    # special case: we've just finished constructing an array.
+    if type is ']'
+      if arrayStack.length <= 1
+        throw new StrictError "Mismatched ']' character." if strict
+      else
+        built = arrayStack.pop()
+        arrayStack[arrayStack.length-1].push(
+          type: 'array'
+          value: built
+        )
+      continue
+
     # by the standard, we have to ignore the whole message
     # if we don't understand an argument
     typeString = exports.oscTypeCodeToTypeString type
@@ -345,11 +368,13 @@ exports.fromOscMessage = (buffer, strict) ->
     buffer = arg.rest if arg?
 
     # add it to the list.
-    args.push(
+    arrayStack[arrayStack.length-1].push(
       type : typeString
       value : arg?.value
     )
 
+  if arrayStack.length isnt 1 and strict
+    throw new StrictError "Mismatched '[' character"
   {address : address, args : args, oscType : "message"}
 
 #
@@ -381,6 +406,39 @@ exports.fromOscPacket = (buffer, strict) ->
   else
     exports.fromOscMessage buffer, strict
 
+# helper - is it an argument that represents an array?
+getArrayArg = (arg) ->
+  if IsArray arg
+    arg
+  else if (arg?.type is "array") and (IsArray arg?.value)
+    arg.value
+  else
+    null
+
+# helper - converts an argument list into a pair of a type string and a
+# data buffer
+# argList must be an array!!!
+toOscTypeAndArgs = (argList, strict) ->
+  osctype = ""
+  oscargs = []
+  for arg in argList
+    if (getArrayArg arg)?
+      [thisType, thisArgs] = toOscTypeAndArgs (getArrayArg arg), strict
+      osctype += "[" + thisType + "]"
+      oscargs = oscargs.concat thisArgs
+      continue
+    typeCode = exports.argToTypeCode arg, strict
+    if typeCode?
+      value = arg?.value
+      if value is undefined
+        value = arg
+      buff = exports.toOscArgument value,
+        (exports.oscTypeCodeToTypeString typeCode), strict
+      if buff?
+        oscargs.push buff
+        osctype += typeCode
+  [osctype, oscargs]
+
 #
 # convert a javascript format message into an osc buffer
 #
@@ -402,27 +460,15 @@ exports.toOscMessage = (message, strict) ->
     args[0] = old_arg
 
   oscaddr = exports.toOscString address, strict
-  osctype = ","
-  oscargs = []
+  [osctype, oscargs] = toOscTypeAndArgs args, strict
+  osctype = "," + osctype
 
-  # fill in args
-  for arg in args
-    typeCode = exports.argToTypeCode arg, strict
-    if typeCode?
-      value = arg?.value
-      if value is undefined
-        value = arg
-      buff = exports.toOscArgument value,
-        exports.oscTypeCodeToTypeString(typeCode), strict
-      if buff?
-        oscargs.push buff
-        osctype += typeCode
+  # bundle everything together.
+  allArgs = exports.concat oscargs
 
   # convert the type tag into an oscString.
   osctype = exports.toOscString osctype
 
-  # bundle everything together.
-  allArgs = exports.concat oscargs
   exports.concat [oscaddr, osctype, allArgs]
 
 #

@@ -1,11 +1,11 @@
 {
   "name": "osc-min",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "main": "lib/index",
   "author": {
     "name": "Russell McClellan",
     "email": "russell.mcclellan@gmail.com",
-    "url": "http://www.ghostfact.com"
+    "url": "http://www.russellmcc.com"
   },
   "description": "Simple utilities for open sound control in node.js",
   "keywords": [

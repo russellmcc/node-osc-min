@@ -191,7 +191,6 @@ exports["fromOscMessage with blob argument works"] = ->
   assert.strictEqual translate?.args?[0]?.type, "blob"
   assert.strictEqual (translate?.args?[0]?.value?.toString "utf8"), "argu"
 
-
 exports["fromOscMessage with integer argument works"] = ->
   oscaddr = osc.toOscString "/stuff"
   osctype = osc.toOscString ",i"
@@ -209,6 +208,62 @@ exports["fromOscMessage with timetag argument works"] = ->
   assert.strictEqual translate?.address, "/stuff"
   assert.strictEqual translate?.args?[0]?.type, "timetag"
   assert.strictEqual (translate?.args?[0]?.value), 8888
+
+exports["fromOscMessage with mismatched array doesn't throw"] = ->
+  oscaddr = osc.toOscString "/stuff"
+  assert.doesNotThrow (-> osc.fromOscMessage osc.concat(
+    [oscaddr, osc.toOscString ",["]))
+  assert.doesNotThrow (-> osc.fromOscMessage osc.concat(
+    [oscaddr, osc.toOscString ",["]))
+
+exports["fromOscMessage with mismatched array throws in strict"] = ->
+  oscaddr = osc.toOscString "/stuff"
+  assert.throws (-> osc.fromOscMessage (osc.concat(
+    [oscaddr, osc.toOscString ",["])), true)
+  assert.throws (-> osc.fromOscMessage (osc.concat(
+    [oscaddr, osc.toOscString ",]"])), true)
+
+exports["fromOscMessage with empty array argument works"] = ->
+  oscaddr = osc.toOscString "/stuff"
+  osctype = osc.toOscString ",[]"
+  translate = osc.fromOscMessage osc.concat [oscaddr, osctype]
+  assert.strictEqual translate?.address, "/stuff"
+  assert.strictEqual translate?.args?[0]?.type, "array"
+  assert.strictEqual (translate?.args?[0]?.value?.length), 0
+  assert.deepEqual (translate?.args?[0]?.value), []
+
+exports["fromOscMessage with bang array argument works"] = ->
+  oscaddr = osc.toOscString "/stuff"
+  osctype = osc.toOscString ",[I]"
+  translate = osc.fromOscMessage osc.concat [oscaddr, osctype]
+  assert.strictEqual translate?.address, "/stuff"
+  assert.strictEqual translate?.args?[0]?.type, "array"
+  assert.strictEqual (translate?.args?[0]?.value?.length), 1
+  assert.strictEqual (translate?.args?[0]?.value?[0]?.type), "bang"
+  assert.strictEqual (translate?.args?[0]?.value?[0]?.value), "bang"
+
+exports["fromOscMessage with string array argument works"] = ->
+  oscaddr = osc.toOscString "/stuff"
+  osctype = osc.toOscString ",[s]"
+  oscarg = osc.toOscString "argu"
+  translate = osc.fromOscMessage osc.concat [oscaddr, osctype, oscarg]
+  assert.strictEqual translate?.address, "/stuff"
+  assert.strictEqual translate?.args?[0]?.type, "array"
+  assert.strictEqual (translate?.args?[0]?.value?.length), 1
+  assert.strictEqual (translate?.args?[0]?.value?[0]?.type), "string"
+  assert.strictEqual (translate?.args?[0]?.value?[0]?.value), "argu"
+
+exports["fromOscMessage with nested array argument works"] = ->
+  oscaddr = osc.toOscString "/stuff"
+  osctype = osc.toOscString ",[[I]]"
+  translate = osc.fromOscMessage osc.concat [oscaddr, osctype]
+  assert.strictEqual translate?.address, "/stuff"
+  assert.strictEqual translate?.args?[0]?.type, "array"
+  assert.strictEqual translate?.args?[0]?.value?.length, 1
+  assert.strictEqual (translate?.args?[0]?.value?[0]?.type), "array"
+  assert.strictEqual (translate?.args?[0]?.value?[0]?.value?.length), 1
+  assert.strictEqual (translate?.args?[0]?.value?[0]?.value?[0]?.type), "bang"
+  assert.strictEqual (translate?.args?[0]?.value?[0]?.value?[0]?.value), "bang"
 
 exports["fromOscMessage with multiple args works."] = ->
   oscaddr = osc.toOscString "/stuff"
@@ -244,7 +299,6 @@ exports["fromOscMessage strict fails if type address doesn't begin with /"] = ->
   assert.throws ->
     osc.fromOscMessage (osc.concat [oscaddr, osctype]), true
 
-
 exports["fromOscBundle works with no messages"] = ->
   oscbundle = osc.toOscString "#bundle"
   osctimetag = osc.toIntegerBuffer 0, "UInt64"
@@ -252,7 +306,6 @@ exports["fromOscBundle works with no messages"] = ->
   translate = osc.fromOscBundle buffer
   assert.strictEqual translate?.timetag, 0
   assert.deepEqual translate?.elements, []
-
 
 exports["fromOscBundle works with single message"] = ->
   oscbundle = osc.toOscString "#bundle"
@@ -266,7 +319,6 @@ exports["fromOscBundle works with single message"] = ->
   assert.strictEqual translate?.timetag, 0
   assert.strictEqual translate?.elements?.length, 1
   assert.strictEqual translate?.elements?[0]?.address, "/addr"
-
 
 exports["fromOscBundle works with multiple messages"] = ->
   oscbundle = osc.toOscString "#bundle"
@@ -285,7 +337,6 @@ exports["fromOscBundle works with multiple messages"] = ->
   assert.strictEqual translate?.elements?.length, 2
   assert.strictEqual translate?.elements?[0]?.address, "/addr"
   assert.strictEqual translate?.elements?[1]?.address, "/addr2"
-
 
 exports["fromOscBundle works with nested bundles"] = ->
   oscbundle = osc.toOscString "#bundle"
@@ -347,9 +398,9 @@ roundTripMessage = (args) ->
     assert.strictEqual roundTrip?.args?[i]?.type, args[i].type if args[i]?.type?
     if Buffer.isBuffer comp
       for j in [0...comp.length]
-        assert.strictEqual roundTrip?.args?[i]?.value?[j], comp[j]
+        assert.deepEqual roundTrip?.args?[i]?.value?[j], comp[j]
     else
-      assert.strictEqual roundTrip?.args?[i]?.value, comp
+      assert.deepEqual roundTrip?.args?[i]?.value, comp
 
 exports["toOscArgument fails when given bogus type"] = ->
   assert.throws -> osc.toOscArgument "bleh", "bogus"
@@ -363,6 +414,20 @@ exports["toOscMessage strict with null argument throws"] = ->
 
 exports["toOscMessage with string argument works"] = ->
   roundTripMessage ["strr"]
+
+exports["toOscMessage with empty array argument works"] = ->
+  roundTripMessage [[]]
+
+exports["toOscMessage with string array argument works"] = ->
+  roundTripMessage [[{type:"string", value:"hello"},
+                     {type:"string", value:"goodbye"}]]
+
+exports["toOscMessage with multi-type array argument works"] = ->
+  roundTripMessage [[{type:"string", value:"hello"},
+                     {type:"integer", value:7}]]
+
+exports["toOscMessage with nested array argument works"] = ->
+  roundTripMessage [[{type:"array", value:[{type:"string", value:"hello"}]}]]
 
 buffeq = (buff, exp_buff) ->
   assert.strictEqual buff.length, exp_buff.length
