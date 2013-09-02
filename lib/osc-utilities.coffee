@@ -391,8 +391,6 @@ exports.toOscMessage = (message, strict) ->
     throw new Error "message must contain an address"
 
   args = message?.args
-  if (not args?) and (message?.args?)
-    args = message?.args
 
   if args is undefined
     args = []
