@@ -418,6 +418,9 @@ exports["toOscMessage with string argument works"] = ->
 exports["toOscMessage with empty array argument works"] = ->
   roundTripMessage [[]]
 
+exports["toOscMessage with array value works"] = ->
+  roundTripMessage [{value:[]}]
+
 exports["toOscMessage with string array argument works"] = ->
   roundTripMessage [[{type:"string", value:"hello"},
                      {type:"string", value:"goodbye"}]]

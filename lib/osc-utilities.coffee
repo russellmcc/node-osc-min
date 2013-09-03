@@ -412,6 +412,8 @@ getArrayArg = (arg) ->
     arg
   else if (arg?.type is "array") and (IsArray arg?.value)
     arg.value
+  else if arg? and (not arg.type?) and (IsArray arg.value)
+    arg.value
   else
     null
 
