@@ -211,3 +211,6 @@ See the [spec][spec] for more information on the OSC types.
 
 [spec]: http://opensoundcontrol.org/spec-1_0
 
+## License
+
+<a href="http://www.boost.org/LICENSE_1_0.txt" rel="license">Boost Software License v1.0</a>
