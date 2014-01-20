@@ -23,8 +23,18 @@
     "coffee-script": ">=1.3.0"
   },
   "devDependencies": {
-    "expresso": "*",
-    "docket": ">=0.0.3"
+    "mocha": "*",
+    "docket": ">=0.0.3",
+    "coveralls": "*",
+    "blanket": "*",
+    "mocha-lcov-reporter": "*"
+  },
+  "config" : {
+    "blanket": {
+        "loader" : "./node-loaders/coffee-script",
+        "pattern" : "lib",
+        "data-cover-never": "node_modules"
+    }
   },
   "directories": {
     "lib": "lib",
@@ -36,6 +46,7 @@
   "scripts": {
     "test": "cake test",
     "coverage": "cake coverage",
+    "coveralls": "cake coveralls",
     "doc": "cake doc"
   },
   "_id": "osc-min@0.0.5",
