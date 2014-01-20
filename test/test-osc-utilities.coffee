@@ -46,7 +46,7 @@ test 'non strings fail toOscString', ->
   assert.throws -> osc.toOscString(7)
 
 
-exports["strings with null characters don't fail toOscString by default"] = ->
+test 'strings with null characters don\'t fail toOscString by default', ->
   assert.notEqual(osc.toOscString("\u0000"), null)
 
 
@@ -120,7 +120,7 @@ test 'concat throws when passed an array of non-buffers', ->
 test 'toIntegerBuffer throws when passed a non-number', ->
   assert.throws -> osc.toIntegerBuffer "abcdefg"
 
-exports["splitInteger fails when sent a buffer that's too small"] = ->
+test 'splitInteger fails when sent a buffer that\'s too small', ->
   assert.throws -> osc.splitInteger new Buffer 3, "Int32"
 
 test 'splitOscArgument fails when given a bogus type', ->
@@ -209,7 +209,7 @@ test 'fromOscMessage with timetag argument works', ->
   assert.strictEqual translate?.args?[0]?.type, "timetag"
   assert.strictEqual (translate?.args?[0]?.value), 8888
 
-exports["fromOscMessage with mismatched array doesn't throw"] = ->
+test 'fromOscMessage with mismatched array doesn\'t throw', ->
   oscaddr = osc.toOscString "/stuff"
   assert.doesNotThrow (-> osc.fromOscMessage osc.concat(
     [oscaddr, osc.toOscString ",["]))
@@ -265,7 +265,7 @@ test 'fromOscMessage with nested array argument works', ->
   assert.strictEqual (translate?.args?[0]?.value?[0]?.value?[0]?.type), "bang"
   assert.strictEqual (translate?.args?[0]?.value?[0]?.value?[0]?.value), "bang"
 
-exports["fromOscMessage with multiple args works."] = ->
+test 'fromOscMessage with multiple args works', ->
   oscaddr = osc.toOscString "/stuff"
   osctype = osc.toOscString ",sbi"
   oscargs = [
@@ -293,7 +293,7 @@ test 'fromOscMessage non-strict works if type string has no comma', ->
   assert.strictEqual message.address, "/stuff"
   assert.strictEqual message.args.length, 0
 
-exports["fromOscMessage strict fails if type address doesn't begin with /"] = ->
+test 'fromOscMessage strict fails if type address doesn\'t begin with /', ->
   oscaddr = osc.toOscString "stuff"
   osctype = osc.toOscString ","
   assert.throws ->
