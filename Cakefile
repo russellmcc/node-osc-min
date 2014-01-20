@@ -6,6 +6,8 @@ task 'test', 'run tests (requires development install)', (options) ->
   test = child.spawn 'mocha', ['--compilers', 'coffee:coffee-script', '-u', 'tdd', 'test']
   test.stdout.pipe process.stdout
   test.stderr.pipe process.stderr
+  test.on 'exit', (num) ->
+    return process.exit num
 
 spawnMochaCov = (reporter) ->
   return child.spawn 'mocha', ['--compilers', 'coffee:coffee-script', '-r', 'blanket', '-R', reporter, '-u', 'tdd', 'test']
