@@ -4,7 +4,7 @@
 #  My guess is client code won't need this.  If you do need this, you must
 #  require coffee first, then write:
 #
-#       require("coffee-script");
+#       require("coffee-script/register");
 #       osc-utils = require("osc/lib/osc-utilities");
 #
 #  See the comments in osc.coffee for more information about the structure of
