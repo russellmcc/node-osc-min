@@ -1,6 +1,6 @@
 {
   "name": "osc-min",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "main": "lib/index",
   "author": {
     "name": "Russell McClellan",
@@ -19,8 +19,8 @@
     "url": "http://github.com/russellmcc/node-osc-min.git"
   },
   "dependencies": {
-    "binpack": "*",
-    "coffee-script": "^1.7"
+    "binpack": "~0",
+    "coffee-script": ">=1.7.1 <2.0.0"
   },
   "devDependencies": {
     "mocha": "*",
