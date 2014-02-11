@@ -1,4 +1,4 @@
-[![build status](https://secure.travis-ci.org/russellmcc/node-osc-min.png)](http://travis-ci.org/russellmcc/node-osc-min) [![Coverage Status](https://coveralls.io/repos/russellmcc/node-osc-min/badge.png?branch=master)](https://coveralls.io/r/russellmcc/node-osc-min?branch=master)
+[![build status](https://secure.travis-ci.org/russellmcc/node-osc-min.png)](http://travis-ci.org/russellmcc/node-osc-min) [![Coverage Status](https://coveralls.io/repos/russellmcc/node-osc-min/badge.png?branch=master)](https://coveralls.io/r/russellmcc/node-osc-min?branch=master) [![dependencies](https://david-dm.org/russellmcc/node-osc-min.png)](https://david-dm.org/russellmcc/node-osc-min)
 # osc-min
 
 _simple utilities for open sound control in node.js_
