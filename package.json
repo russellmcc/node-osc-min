@@ -1,6 +1,6 @@
 {
   "name": "osc-min",
-  "version": "0.0.15",
+  "version": "0.1.0",
   "main": "lib/index",
   "author": {
     "name": "Russell McClellan",
@@ -19,15 +19,15 @@
     "url": "http://github.com/russellmcc/node-osc-min.git"
   },
   "dependencies": {
-    "binpack": "~0",
-    "coffee-script": ">=1.7.1 <2.0.0"
+    "binpack": "~0"
   },
   "devDependencies": {
     "mocha": "*",
     "docket": ">=0.0.3",
     "coveralls": "*",
     "blanket": "*",
-    "mocha-lcov-reporter": "*"
+    "mocha-lcov-reporter": "*",
+    "coffee-script": ">=1.7.1 <2.0.0"
   },
   "config" : {
     "blanket": {
@@ -47,7 +47,8 @@
     "test": "cake test",
     "coverage": "cake coverage",
     "coveralls": "cake coveralls",
-    "doc": "cake doc"
+    "doc": "cake doc",
+    "prepublish" : "cake doc; coffee -c lib/osc-utilities.coffee"
   },
   "_id": "osc-min@0.0.5",
   "dist": {
