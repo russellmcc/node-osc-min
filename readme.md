@@ -37,6 +37,13 @@ npm test
 npm run-script coverage
 ```
 
+### for browser
+If you want to use in a browser, you can build a browserified file (`build/osc-min.js`) with the below command.
+
+```
+npm run-script browserify
+```
+
 ----
 ## Examples
 ### A simple OSC printer;
