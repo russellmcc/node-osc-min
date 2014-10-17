@@ -1,6 +1,6 @@
 {
   "name": "osc-min",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "lib/index",
   "author": {
     "name": "Russell McClellan",
@@ -43,7 +43,7 @@
     "examples": "examples"
   },
   "engines": {
-    "node": ">=0.6.0"
+    "node": ">=0.10.0"
   },
   "scripts": {
     "test": "cake test",

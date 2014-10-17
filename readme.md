@@ -38,9 +38,10 @@ npm run-script coverage
 ```
 
 ### for browser
-If you want to use in a browser, you can build a browserified file (`build/osc-min.js`) with the below command.
+If you want to use this library in a browser, you can build a browserified file (`build/osc-min.js`) with
 
 ```
+npm install --dev
 npm run-script browserify
 ```
 
