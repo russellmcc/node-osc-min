@@ -12,7 +12,7 @@ else
 
 sendHeartbeat = () ->
     buf = osc.toBuffer(
-        timetag : 12345
+        timetag : 0.001  # 0.001 seconds from now
         elements : [
             {
                 address : "/p1"
