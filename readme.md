@@ -121,10 +121,35 @@ outputs the javascript representation, or throws if the buffer is ill-formed.
 takes a _OSC packet_ javascript representation as defined below and returns
 a node.js Buffer, or throws if the representation is ill-formed.
 
+See "JavaScript representations of the OSC types" below
+
 ----
 ### .toBuffer(address, args[], [strict])
-alternative syntax for above.  Assumes this is an _OSC Message_ as defined below, 
+alternative syntax for above.  Assumes this is an _OSC Message_ as defined below,
 and `args` is an array of _OSC Arguments_ or single _OSC Argument_
+
+----
+
+### .timetagToDate(ntpTimeTag)
+Convert a timetag array to a JavaScript Date object in your local timezone.
+
+Received OSC bundles converted with `fromBuffer` will have a timetag array:
+[secondsSince1970, fractionalSeconds]
+This utility is useful for logging. Accuracy is reduced to milliseconds,
+but the returned Date object also has `fractionalSecondsInt` and `fractionalSecondsFloat` set if you need full accuracy (0.00000000023283 second, or 2^32 per second)
+
+----
+### .dateToTimetag(date)
+Convert a JavaScript Date to a NTP timetag array [secondsSince1970, fractionalSeconds].
+
+`toBuffer` already accepts Dates for timetags so you might not need this function. If you need to schedule bundles with finer than millisecond accuracy then you could use this to help assemble the NTP array.
+
+----
+### .deltaTimetag(secondsFromNow, [now])
+Make NTP timetag array relative to the current time.
+
+`toBuffer` already accepts floats for timetags and interprets this as a relative time, so you might not need this function. If you need to schedule bundles with finer than millisecond accuracy then you could use this to help assemble the NTP array.
+
 
 ----
 ### .applyAddressTransform(buffer, transform)
@@ -205,17 +230,35 @@ See the [spec][spec] for more information on the OSC types.
    `string`, `float`, `array` or `blob`, depending on its javascript type
    (String, Number, Array, Buffer, respectively)
 
-+ An _OSC Bundle_ is represented as a javascript object with the following layout
++ An _OSC Bundle_ is represented as a javascript object with the following fields:
 
-          {
-              oscType : "bundle"
-              timetag : 7
-              elements : [element1, element]
-          }
+```
+{
+  oscType : "bundle"
+  timetag : 7
+  elements : [
+    message1,
+    message2
+    // ...
+  ]
+}
+```
 
-  Where the timetag is a javascript-native numeric value of the timetag,
-  and elements is an array of either an _OSC Bundle_ or an _OSC Message_
-  The `oscType` field is optional, but is always returned by api functions.
+  `oscType` "bundle"
+
+  `timetag` is one of:
+   - `null` - meaning now, the current time.
+     By the time the bundle is received it will be too late and depending
+     on the receiver may be discarded or you may be scolded for being late.
+   - `number` - relative seconds from now with millisecond accuracy.
+   - `Date` - a JavaScript Date object in your local time zone.
+    OSC timetags use UTC timezone, so do not try to adjust for timezones,
+    this is not needed.
+   - `Array` - `[numberOfSecondsSince1900, fractionalSeconds]`
+     Both values are `Int32`. This gives full timing accuracy of 1/(2^32) seconds which may be needed for some granular synthesis applications.
+
+ `elements` is an `Array` of either _OSC Message_ or _OSC Bundle_
+
 
 [spec]: http://opensoundcontrol.org/spec-1_0
 
