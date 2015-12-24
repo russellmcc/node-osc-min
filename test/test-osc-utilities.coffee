@@ -203,11 +203,12 @@ test 'fromOscMessage with integer argument works', ->
 test 'fromOscMessage with timetag argument works', ->
   oscaddr = osc.toOscString "/stuff"
   osctype = osc.toOscString ",t"
-  oscarg = osc.toIntegerBuffer 8888, "UInt64"
+  timetag = [8888, 9999]
+  oscarg = osc.toTimetagBuffer timetag
   translate = osc.fromOscMessage osc.concat [oscaddr, osctype, oscarg]
   assert.strictEqual translate?.address, "/stuff"
   assert.strictEqual translate?.args?[0]?.type, "timetag"
-  assert.strictEqual (translate?.args?[0]?.value), 8888
+  assert.deepEqual (translate?.args?[0]?.value), timetag
 
 test 'fromOscMessage with mismatched array doesn\'t throw', ->
   oscaddr = osc.toOscString "/stuff"
@@ -301,28 +302,31 @@ test 'fromOscMessage strict fails if type address doesn\'t begin with /', ->
 
 test 'fromOscBundle works with no messages', ->
   oscbundle = osc.toOscString "#bundle"
-  osctimetag = osc.toIntegerBuffer 0, "UInt64"
+  timetag = [0, 0]
+  osctimetag = osc.toTimetagBuffer timetag
   buffer = osc.concat [oscbundle, osctimetag]
   translate = osc.fromOscBundle buffer
-  assert.strictEqual translate?.timetag, 0
+  assert.deepEqual translate?.timetag, timetag
   assert.deepEqual translate?.elements, []
 
 test 'fromOscBundle works with single message', ->
   oscbundle = osc.toOscString "#bundle"
-  osctimetag = osc.toIntegerBuffer 0, "UInt64"
+  timetag = [0, 0]
+  osctimetag = osc.toTimetagBuffer timetag
   oscaddr = osc.toOscString "/addr"
   osctype = osc.toOscString ","
   oscmessage = osc.concat [oscaddr, osctype]
   osclen = osc.toIntegerBuffer oscmessage.length
   buffer = osc.concat [oscbundle, osctimetag, osclen, oscmessage]
   translate = osc.fromOscBundle buffer
-  assert.strictEqual translate?.timetag, 0
+  assert.deepEqual translate?.timetag, timetag
   assert.strictEqual translate?.elements?.length, 1
   assert.strictEqual translate?.elements?[0]?.address, "/addr"
 
 test 'fromOscBundle works with multiple messages', ->
   oscbundle = osc.toOscString "#bundle"
-  osctimetag = osc.toIntegerBuffer 0, "UInt64"
+  timetag = [0, 0]
+  osctimetag = osc.toTimetagBuffer timetag
   oscaddr1 = osc.toOscString "/addr"
   osctype1 = osc.toOscString ","
   oscmessage1 = osc.concat [oscaddr1, osctype1]
@@ -333,32 +337,35 @@ test 'fromOscBundle works with multiple messages', ->
   osclen2 = osc.toIntegerBuffer oscmessage2.length
   buffer = osc.concat [oscbundle, osctimetag, osclen1, oscmessage1, osclen2, oscmessage2]
   translate = osc.fromOscBundle buffer
-  assert.strictEqual translate?.timetag, 0
+  assert.deepEqual translate?.timetag, timetag
   assert.strictEqual translate?.elements?.length, 2
   assert.strictEqual translate?.elements?[0]?.address, "/addr"
   assert.strictEqual translate?.elements?[1]?.address, "/addr2"
 
 test 'fromOscBundle works with nested bundles', ->
   oscbundle = osc.toOscString "#bundle"
-  osctimetag = osc.toIntegerBuffer 0, "UInt64"
+  timetag = [0, 0]
+  osctimetag = osc.toTimetagBuffer timetag
   oscaddr1 = osc.toOscString "/addr"
   osctype1 = osc.toOscString ","
   oscmessage1 = osc.concat [oscaddr1, osctype1]
   osclen1 = osc.toIntegerBuffer oscmessage1.length
   oscbundle2 = osc.toOscString "#bundle"
-  osctimetag2 = osc.toIntegerBuffer 0, "UInt64"
+  timetag2 = [0, 0]
+  osctimetag2 = osc.toTimetagBuffer timetag2
   oscmessage2 = osc.concat [oscbundle2, osctimetag2]
   osclen2 = osc.toIntegerBuffer oscmessage2.length
   buffer = osc.concat [oscbundle, osctimetag, osclen1, oscmessage1, osclen2, oscmessage2]
   translate = osc.fromOscBundle buffer
-  assert.strictEqual translate?.timetag, 0
+  assert.deepEqual translate?.timetag, timetag
   assert.strictEqual translate?.elements?.length, 2
   assert.strictEqual translate?.elements?[0]?.address, "/addr"
-  assert.strictEqual translate?.elements?[1]?.timetag, 0
+  assert.deepEqual translate?.elements?[1]?.timetag, timetag2
 
 test 'fromOscBundle works with non-understood messages', ->
   oscbundle = osc.toOscString "#bundle"
-  osctimetag = osc.toIntegerBuffer 0, "UInt64"
+  timetag = [0, 0]
+  osctimetag = osc.toTimetagBuffer timetag
   oscaddr1 = osc.toOscString "/addr"
   osctype1 = osc.toOscString ","
   oscmessage1 = osc.concat [oscaddr1, osctype1]
@@ -369,7 +376,7 @@ test 'fromOscBundle works with non-understood messages', ->
   osclen2 = osc.toIntegerBuffer oscmessage2.length
   buffer = osc.concat [oscbundle, osctimetag, osclen1, oscmessage1, osclen2, oscmessage2]
   translate = osc.fromOscBundle buffer
-  assert.strictEqual translate?.timetag, 0
+  assert.deepEqual translate?.timetag, timetag
   assert.strictEqual translate?.elements?.length, 1
   assert.strictEqual translate?.elements?[0]?.address, "/addr"
 
@@ -378,9 +385,10 @@ test 'fromOscBundle fails with bad bundle ID', ->
   assert.throws -> osc.fromOscBundle oscbundle
 
 test 'fromOscBundle fails with ridiculous sizes', ->
+  timetag = [0, 0]
   oscbundle = osc.concat [
     osc.toOscString "#bundle"
-    osc.toIntegerBuffer 1234567, "Int64"
+    osc.toTimetagBuffer timetag
     osc.toIntegerBuffer 999999
   ]
   assert.throws -> osc.fromOscBundle oscbundle
@@ -526,10 +534,10 @@ test 'toOscMessage with type bang argument works', ->
   assert.strictEqual roundTrip.args[0].type, "bang"
 
 test 'toOscMessage with type timetag argument works', ->
-  roundTripMessage [{type: "timetag", value:8888}]
+  roundTripMessage [{type: "timetag", value: [8888, 9999]}]
 
 test 'toOscMessage with type double argument works', ->
-  roundTripMessage [{type: "double", value:8888}]
+  roundTripMessage [{type: "double", value: 8888}]
 
 test 'toOscMessage strict with type null with value true throws', ->
   assert.throws -> osc.toOscMessage({address: "/addr/", args: {type : "null", value : true}}, true)
@@ -607,16 +615,16 @@ test 'toOscMessage fails argument is a random type', ->
 
 roundTripBundle = (elems) ->
   oscMessage = {
-    timetag : 0
+    timetag : [0, 0]
     elements : elems
   }
   roundTrip = osc.fromOscBundle (osc.toOscBundle oscMessage), true
-  assert.strictEqual roundTrip?.timetag, 0
+  assert.deepEqual roundTrip?.timetag, [0, 0]
   length = if typeof elems is "object" then elems.length else 1
   assert.strictEqual roundTrip?.elements?.length, length
   for i in [0...length]
     if typeof elems is "object"
-      assert.strictEqual roundTrip?.elements?[i]?.timetag, elems[i].timetag
+      assert.deepEqual roundTrip?.elements?[i]?.timetag, elems[i].timetag
       assert.strictEqual roundTrip?.elements?[i]?.address, elems[i].address
     else
       assert.strictEqual roundTrip?.elements?[i]?.address, elems
@@ -634,15 +642,15 @@ test 'toOscBundle with one message works', ->
   roundTripBundle [{address : "/addr"}]
 
 test 'toOscBundle with nested bundles works', ->
-  roundTripBundle [{address : "/addr"}, {timetag : 0}]
+  roundTripBundle [{address : "/addr"}, {timetag : [8888, 9999]}]
 
 test 'toOscBundle with bogus packets works', ->
   roundTrip = osc.fromOscBundle osc.toOscBundle {
-    timetag : 0
-    elements : [{timetag : 0}, {maddress : "/addr"}]
+    timetag : [0, 0]
+    elements : [{timetag : [0, 0]}, {maddress : "/addr"}]
   }
   assert.strictEqual roundTrip.elements.length, 1
-  assert.strictEqual roundTrip.elements[0].timetag, 0
+  assert.deepEqual roundTrip.elements[0].timetag, [0, 0]
 
 test 'toOscBundle strict fails without timetags', ->
   assert.throws -> osc.toOscBundle {elements :[]}, true
@@ -666,7 +674,7 @@ test 'toOscPacket works when explicitly set to message', ->
 
 test 'identity applyTransform works with a simple bundle', ->
   base = {
-    timetag : 0
+    timetag : [0, 0]
     elements : [
       {address : "test1"}
       {address : "test2"}
@@ -674,10 +682,10 @@ test 'identity applyTransform works with a simple bundle', ->
   }
   transformed = osc.fromOscPacket (osc.applyTransform (osc.toOscPacket base), (a) -> a)
 
-  assert.strictEqual transformed?.timetag, 0
+  assert.deepEqual transformed?.timetag, [0, 0]
   assert.strictEqual transformed?.elements?.length, base.elements.length
   for i in [0...base.elements.length]
-    assert.strictEqual transformed?.elements?[i]?.timetag, base.elements[i].timetag
+    assert.equal transformed?.elements?[i]?.timetag, base.elements[i].timetag
     assert.strictEqual transformed?.elements?[i]?.address, base.elements[i].address
 
 test 'applyMessageTranformerToBundle fails on bundle without tag', ->
@@ -696,7 +704,7 @@ test 'addressTransform works with identity', ->
 
 test 'addressTransform works with bundles', ->
   base = {
-    timetag : 0
+    timetag : [0, 0]
     elements : [
       {address : "test1"}
       {address : "test2"}
@@ -704,10 +712,10 @@ test 'addressTransform works with bundles', ->
   }
   transformed = osc.fromOscPacket (osc.applyTransform (osc.toOscPacket base), osc.addressTransform((a) -> "/prelude/" + a))
 
-  assert.strictEqual transformed?.timetag, 0
+  assert.deepEqual transformed?.timetag, [0, 0]
   assert.strictEqual transformed?.elements?.length, base.elements.length
   for i in [0...base.elements.length]
-    assert.strictEqual transformed?.elements?[i]?.timetag, base.elements[i].timetag
+    assert.equal transformed?.elements?[i]?.timetag, base.elements[i].timetag
     assert.strictEqual transformed?.elements?[i]?.address, "/prelude/" + base.elements[i].address
 
 test 'messageTransform works with identity function for single message', ->
@@ -720,7 +728,7 @@ test 'messageTransform works with identity function for single message', ->
 
 test 'messageTransform works with bundles', ->
   message = {
-    timetag : 0
+    timetag : [0, 0]
     elements : [
       {address : "test1"}
       {address : "test2"}
@@ -728,3 +736,54 @@ test 'messageTransform works with bundles', ->
   }
   buff = osc.toOscPacket message
   buffeq (osc.applyTransform buff, osc.messageTransform (a) -> a), buff
+
+test 'toTimetagBuffer works with a delta number', ->
+  delta = 1.2345
+  buf = osc.toTimetagBuffer delta
+
+# assert dates are equal to within floating point conversion error
+assertDatesEqual = (date1, date2) ->
+  assert Math.abs(date1.getTime() - date2.getTime()) <= 1, '' + date1 + ' != ' + date2
+
+test 'toTimetagBuffer works with a Date', ->
+  date = new Date()
+  buf = osc.toTimetagBuffer date
+
+test 'toTimetagBuffer works with a timetag array', ->
+  timetag = [1000, 10001]
+  buf = osc.toTimetagBuffer timetag
+
+test 'toTimetagBuffer throws with invalid', ->
+  assert.throws -> osc.toTimetagBuffer "some bullshit"
+
+test 'deltaTimetag makes array from a delta', ->
+  delta = 1.2345
+  ntp = osc.deltaTimetag(delta)
+
+test 'timetagToDate converts timetag to a Date', ->
+  date = new Date()
+  timetag = osc.dateToTimetag(date)
+  date2 = osc.timetagToDate(timetag)
+  assertDatesEqual date, date2
+
+test 'timestampToTimetag converts a unix time to ntp array', ->
+  date = new Date()
+  timetag = osc.timestampToTimetag(date.getTime())
+  date2 = osc.timetagToDate(timetag)
+  assertDatesEqual date, date2
+
+test 'dateToTimetag converts date to ntp array', ->
+  date = new Date()
+  timetag = osc.dateToTimetag(date)
+  date2 = osc.timetagToDate(timetag)
+  assertDatesEqual date, date2
+
+test 'splitTimetag returns timetag from a buffer', ->
+  timetag = [1000, 1001]
+  rest = "the rest"
+  buf = osc.concat [
+    osc.toTimetagBuffer(timetag),
+    new Buffer(rest)
+  ]
+  {timetag: timetag2, rest: rest2} = osc.splitTimetag buf
+  assert.deepEqual timetag2, timetag
