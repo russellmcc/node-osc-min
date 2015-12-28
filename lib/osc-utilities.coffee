@@ -210,7 +210,7 @@ exports.ntpToFractionalSeconds = (fracSeconds) ->
 # as a Buffer for adding to an OSC bundle.
 exports.toTimetagBuffer = (timetag) ->
   if typeof timetag is "number"
-    timetag = exports.deltaTimetag(timetag)
+    timetag = exports.timestampToTimetag(timetag)
   else if typeof timetag is "object" and ("getTime" of timetag)
     # quacks like a Date
     timetag = exports.dateToTimetag(timetag)
