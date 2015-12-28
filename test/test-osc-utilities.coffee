@@ -768,7 +768,7 @@ test 'timetagToDate converts timetag to a Date', ->
 
 test 'timestampToTimetag converts a unix time to ntp array', ->
   date = new Date()
-  timetag = osc.timestampToTimetag(date.getTime())
+  timetag = osc.timestampToTimetag(date.getTime() / 1000)
   date2 = osc.timetagToDate(timetag)
   assertDatesEqual date, date2
 

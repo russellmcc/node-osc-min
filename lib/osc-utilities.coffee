@@ -156,12 +156,11 @@ TWO_POW_32 = 4294967296
 # Time zone of the Date object is respected, as the NTP
 # timetag uses UTC.
 exports.dateToTimetag = (date) ->
-  return exports.timestampToTimetag(date.getTime())
+  return exports.timestampToTimetag(date.getTime() / 1000)
 
-# Convert a unix timestamp (milliseconds since jan 1 1970)
+# Convert a unix timestamp (seconds since jan 1 1970 UTC)
 # to NTP timestamp array
-exports.timestampToTimetag = (timestamp) ->
-  secs = timestamp / 1000
+exports.timestampToTimetag = (secs) ->
   wholeSecs = Math.floor(secs)
   fracSeconds = secs - wholeSecs
   return makeTimetag(wholeSecs, fracSeconds)
@@ -197,10 +196,10 @@ exports.timetagToDate = (timetag) ->
   return dd
 
 # Make NTP timestamp array for relative future: now + seconds
-# Accuracy is limited to 1 millisecond
+# Accuracy of 'now' limited to milliseconds but 'seconds' may be a full 32 bit float
 exports.deltaTimetag = (seconds, now) ->
-  d = (now ? new Date()) * 1 + (seconds * 1000)
-  return exports.timestampToTimetag(d)
+  n = (now ? new Date()) / 1000
+  return exports.timestampToTimetag(n + seconds)
 
 # Convert 32 bit int for NTP fractional seconds
 # to a 32 bit float
