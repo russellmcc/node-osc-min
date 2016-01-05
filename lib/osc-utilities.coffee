@@ -189,10 +189,6 @@ exports.timetagToDate = (timetag) ->
   dd.setUTCMinutes(date.getUTCMinutes())
   dd.setUTCSeconds(date.getUTCSeconds())
   dd.setUTCMilliseconds(fracs * 1000)
-  # set fractional seconds with full precision
-  # to date object
-  dd.fractionalSecondsInt = fractional
-  dd.fractionalSecondsFloat = fracs
   return dd
 
 # Make NTP timestamp array for relative future: now + seconds
