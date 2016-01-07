@@ -10,9 +10,12 @@ if process.argv[2]?
 else
     outport = 41234
 
+# Get the unix timestamp in seconds
+now = -> (new Date()).getTime() / 1000;
+
 sendHeartbeat = () ->
     buf = osc.toBuffer(
-        timetag : 12345
+        timetag : now() + 0.05  # 0.05 seconds from now
         elements : [
             {
                 address : "/p1"
@@ -23,7 +26,7 @@ sendHeartbeat = () ->
                 args : "string"
             }
             {
-                timetag: 34567
+                timetag: now() + 1  # 1 second from now
                 elements : [
                     {
                         address : "/p3"

@@ -1,6 +1,6 @@
 {
   "name": "osc-min",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "main": "lib/index",
   "author": {
     "name": "Russell McClellan",
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "mocha": "*",
-    "docket": ">=0.0.3",
+    "docket": "0.0.5",
     "coveralls": "*",
     "blanket": "*",
     "mocha-lcov-reporter": "*",
@@ -42,6 +42,7 @@
     "lib": "lib",
     "examples": "examples"
   },
+  "license": "Zlib",
   "engines": {
     "node": ">=0.10.0"
   },

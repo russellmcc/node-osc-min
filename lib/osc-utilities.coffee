@@ -129,6 +129,94 @@ exports.splitInteger = (buffer, type) ->
 
   return {integer : value, rest : rest}
 
+# Split off an OSC timetag from buffer
+# returning {timetag: [seconds, fractionalSeconds], rest: restOfBuffer}
+exports.splitTimetag = (buffer) ->
+  type = "Int32"
+  bytes = (binpack["pack" + type] 0).length
+
+  if buffer.length < (bytes * 2)
+    throw new Error "buffer is not big enough to contain a timetag"
+
+  # integers are stored in big endian format.
+  a = 0
+  b = bytes
+  seconds = binpack["unpack" + type] buffer[a...b], "big"
+  c = bytes
+  d = bytes + bytes
+  fractional = binpack["unpack" + type] buffer[c...d], "big"
+  rest = buffer[d...(buffer.length)]
+
+  return {timetag: [seconds, fractional], rest: rest}
+
+UNIX_EPOCH = 2208988800
+TWO_POW_32 = 4294967296
+
+# Convert a JavaScript Date to a NTP timetag array.
+# Time zone of the Date object is respected, as the NTP
+# timetag uses UTC.
+exports.dateToTimetag = (date) ->
+  return exports.timestampToTimetag(date.getTime() / 1000)
+
+# Convert a unix timestamp (seconds since jan 1 1970 UTC)
+# to NTP timestamp array
+exports.timestampToTimetag = (secs) ->
+  wholeSecs = Math.floor(secs)
+  fracSeconds = secs - wholeSecs
+  return makeTimetag(wholeSecs, fracSeconds)
+
+makeTimetag = (unixseconds, fracSeconds) ->
+  # NTP epoch is 1900, JavaScript Date is unix 1970
+  ntpSecs = unixseconds + UNIX_EPOCH
+  ntpFracs = Math.round(TWO_POW_32 * fracSeconds)
+  return [ntpSecs, ntpFracs]
+
+# Convert NTP timestamp array to a JavaScript Date
+# in your systems local time zone.
+exports.timetagToDate = (timetag) ->
+  [seconds, fractional] = timetag
+  seconds = seconds - UNIX_EPOCH
+  fracs = exports.ntpToFractionalSeconds(fractional)
+  date = new Date()
+  # Sets date to UTC/GMT
+  date.setTime((seconds * 1000) + (fracs * 1000))
+  # Create a local timezone date
+  dd = new Date()
+  dd.setUTCFullYear(date.getUTCFullYear())
+  dd.setUTCMonth(date.getUTCMonth())
+  dd.setUTCDate(date.getUTCDate())
+  dd.setUTCHours(date.getUTCHours())
+  dd.setUTCMinutes(date.getUTCMinutes())
+  dd.setUTCSeconds(date.getUTCSeconds())
+  dd.setUTCMilliseconds(fracs * 1000)
+  return dd
+
+# Make NTP timestamp array for relative future: now + seconds
+# Accuracy of 'now' limited to milliseconds but 'seconds' may be a full 32 bit float
+exports.deltaTimetag = (seconds, now) ->
+  n = (now ? new Date()) / 1000
+  return exports.timestampToTimetag(n + seconds)
+
+# Convert 32 bit int for NTP fractional seconds
+# to a 32 bit float
+exports.ntpToFractionalSeconds = (fracSeconds) ->
+  return parseFloat(fracSeconds) / TWO_POW_32
+
+# Encodes a timetag of type null|Number|Array|Date
+# as a Buffer for adding to an OSC bundle.
+exports.toTimetagBuffer = (timetag) ->
+  if typeof timetag is "number"
+    timetag = exports.timestampToTimetag(timetag)
+  else if typeof timetag is "object" and ("getTime" of timetag)
+    # quacks like a Date
+    timetag = exports.dateToTimetag(timetag)
+  else if timetag.length != 2
+    throw new Error("Invalid timetag" + timetag)
+  type = "Int32"
+  high = binpack["pack" + type] timetag[0], "big"
+  low = binpack["pack" + type] timetag[1], "big"
+  return exports.concat([high, low])
+
 exports.toIntegerBuffer = (number, type) ->
   type = "Int32" if not type?
   if typeof number isnt "number"
@@ -164,11 +252,10 @@ oscTypeCodes =
   t : {
     representation : "timetag"
     split : (buffer, strict) ->
-      split = exports.splitInteger buffer, "UInt64"
-      {value : split.integer, rest : split.rest}
+      split = exports.splitTimetag buffer
+      {value: split.timetag, rest: split.rest}
     toArg : (value, strict) ->
-      throw new Error "expected number" if typeof value isnt "number"
-      exports.toIntegerBuffer value, "UInt64"
+      exports.toTimetagBuffer value
   }
   f : {
     representation : "float"
@@ -388,8 +475,8 @@ exports.fromOscBundle = (buffer, strict) ->
   if bundleTag isnt "\#bundle"
     throw new Error "osc-bundles must begin with \#bundle"
 
-  # grab the 8 - bit timetag
-  { integer : timetag, rest : buffer} = exports.splitInteger buffer, "UInt64"
+  # grab the 8 byte timetag
+  {timetag: timetag, rest: buffer} = exports.splitTimetag buffer
 
   # convert each element.
   convertedElems = mapBundleList buffer, (buffer) ->
@@ -480,7 +567,7 @@ exports.toOscBundle = (bundle, strict) ->
   # the bundle must have timetag and elements.
   if strict and not bundle?.timetag?
     throw StrictError "bundles must have timetags."
-  timetag =  bundle?.timetag ? 0
+  timetag =  bundle?.timetag ? new Date()
   elements = bundle?.elements ? []
   if not IsArray elements
     elemstr = elements
@@ -488,7 +575,7 @@ exports.toOscBundle = (bundle, strict) ->
     elements.push elemstr
 
   oscBundleTag = exports.toOscString "\#bundle"
-  oscTimeTag = exports.toIntegerBuffer timetag, "UInt64"
+  oscTimeTag = exports.toTimetagBuffer timetag
 
   oscElems = []
   for elem in elements
