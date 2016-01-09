@@ -175,6 +175,16 @@ Convert a JavaScript Date to a NTP timetag array [secondsSince1970, fractionalSe
 `toBuffer` already accepts Dates for timetags so you might not need this function. If you need to schedule bundles with finer than millisecond accuracy then you could use this to help assemble the NTP array.
 
 ----
+### .timetagToTimestamp(timeTag)
+Convert a timetag array to the number of seconds since the UNIX epoch.
+
+
+----
+### .timestampToTimetag(timeStamp)
+Convert a number of seconds since the UNIX epoch to a timetag array.
+
+
+----
 ## Javascript representations of the OSC types.  
 See the [spec][spec] for more information on the OSC types.
 

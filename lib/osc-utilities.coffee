@@ -165,6 +165,11 @@ exports.timestampToTimetag = (secs) ->
   fracSeconds = secs - wholeSecs
   return makeTimetag(wholeSecs, fracSeconds)
 
+# Convert a timetag to unix timestamp (seconds since unix epoch)
+exports.timetagToTimestamp = (timetag) ->
+  seconds = timetag[0] + exports.ntpToFractionalSeconds(timetag[1])
+  return seconds - UNIX_EPOCH
+
 makeTimetag = (unixseconds, fracSeconds) ->
   # NTP epoch is 1900, JavaScript Date is unix 1970
   ntpSecs = unixseconds + UNIX_EPOCH

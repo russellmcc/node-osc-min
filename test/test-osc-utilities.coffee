@@ -778,6 +778,10 @@ test 'dateToTimetag converts date to ntp array', ->
   date2 = osc.timetagToDate(timetag)
   assertDatesEqual date, date2
 
+test 'timestamp <-> timeTag round trip', ->
+  now = (new Date()).getTime() / 1000
+  assert.equal osc.timetagToTimestamp(osc.timestampToTimetag(now)), now
+
 test 'splitTimetag returns timetag from a buffer', ->
   timetag = [1000, 1001]
   rest = "the rest"
