@@ -11,7 +11,7 @@ If you'd rather get osc-min through github (for example, if you're forking
 it), you still need npm to install dependencies, which you can do with
  
 ```
-npm install --dev
+npm install
 ```
  
 Once you've got all the dependencies you should be able to run the unit
@@ -26,6 +26,6 @@ npm run-script coverage
 If you want to use this library in a browser, you can build a browserified file (`build/osc-min.js`) with
 
 ```
-npm install --dev
+npm install
 npm run-script browserify
 ```
