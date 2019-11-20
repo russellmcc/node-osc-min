@@ -132,7 +132,7 @@ exports.splitInteger = (buffer, type) ->
 # Split off an OSC timetag from buffer
 # returning {timetag: [seconds, fractionalSeconds], rest: restOfBuffer}
 exports.splitTimetag = (buffer) ->
-  type = "Int32"
+  type = "UInt32"
   bytes = (binpack["pack" + type] 0).length
 
   if buffer.length < (bytes * 2)
@@ -217,7 +217,7 @@ exports.toTimetagBuffer = (timetag) ->
     timetag = exports.dateToTimetag(timetag)
   else if timetag.length != 2
     throw new Error("Invalid timetag" + timetag)
-  type = "Int32"
+  type = "UInt32"
   high = binpack["pack" + type] timetag[0], "big"
   low = binpack["pack" + type] timetag[1], "big"
   return exports.concat([high, low])
