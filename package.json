@@ -22,7 +22,7 @@
     "binpack": "~0"
   },
   "devDependencies": {
-    "mocha": "*",
+    "mocha": "2.*",
     "docket": "0.0.5",
     "coveralls": "*",
     "blanket": "*",
