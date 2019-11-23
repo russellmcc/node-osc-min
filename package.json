@@ -1,6 +1,6 @@
 {
   "name": "osc-min",
-  "version": "1.1.2-pre",
+  "version": "1.1.2",
   "main": "lib/index",
   "author": {
     "name": "Russell McClellan",
