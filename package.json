@@ -22,11 +22,7 @@
     "binpack": "~0"
   },
   "devDependencies": {
-    "mocha": "2.*",
-    "docket": "0.0.5",
-    "coffee-script": ">=1.7.1 <2.0.0",
-    "browserify": "^6.1.0",
-    "uglify-js": "^2.4.15"
+    "mocha": "2.*"
   },
   "directories": {
     "lib": "lib",
@@ -37,14 +33,6 @@
     "node": ">=0.10.0"
   },
   "scripts": {
-    "test": "mocha -u tdd test",
-    "doc": "cake doc",
-    "prepublish": "cake doc; coffee -c lib/osc-utilities.coffee",
-    "browserify": "cake browserify"
-  },
-  "_id": "osc-min@0.0.5",
-  "dist": {
-    "shasum": "ead2d1b1e7ff2382e4dad0f7aaa8aa20832118b1"
-  },
-  "_from": "osc-min@0.0.5"
+    "test": "mocha -u tdd test"
+  }
 }
