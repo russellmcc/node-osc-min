@@ -93,17 +93,3 @@ export const timetagToDate = utils.timetagToDate;
 //
 // `toBuffer` already accepts Dates for timetags so you might not need this function. If you need to schedule bundles with finer than millisecond accuracy then you could use this to help assemble the NTP array.
 export const dateToTimetag = utils.dateToTimetag;
-
-//~api~
-//----
-//### .timetagToTimestamp(timeTag)
-// Convert a timetag array to the number of seconds since the UNIX epoch.
-//
-export const timetagToTimestamp = utils.timetagToTimestamp;
-
-//~api~
-//----
-//### .timestampToTimetag(timeStamp)
-// Convert a number of seconds since the UNIX epoch to a timetag array.
-//
-export const timestampToTimetag = utils.timestampToTimetag;

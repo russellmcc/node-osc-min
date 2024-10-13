@@ -1,5 +1,5 @@
 import * as osc from "../lib/osc-utilities";
-import assert from "assert";
+import * as assert from "assert";
 
 var assertDatesEqual,
   buffeq,
@@ -79,9 +79,9 @@ test("osc buffers with no null characters fail splitOscString in strict mode", f
   });
 });
 
-test("osc buffers with non-null characters after a null character fail fromOscString in strict mode", function () {
+test("osc buffers with non-null characters after a null character fail fromOscMessage in strict mode", function () {
   return assert.throws(function () {
-    return osc.fromOscString(new Buffer("abc\u0000abcd"), true);
+    return osc.fromOscMessage(new Buffer("abc\u0000abcd"), true);
   });
 });
 
@@ -95,7 +95,7 @@ test("basic strings pass fromOscString in strict mode", function () {
 
 test("osc buffers with non-four length fail in strict mode", function () {
   return assert.throws(function () {
-    return osc.fromOscString(new Buffer("abcd\u0000\u0000"), true);
+    return osc.fromOscMessage(new Buffer("abcd\u0000\u0000"), true);
   });
 });
 
@@ -186,13 +186,13 @@ test("toIntegerBuffer throws when passed a non-number", function () {
 
 test("splitInteger fails when sent a buffer that's too small", function () {
   return assert.throws(function () {
-    return osc.splitInteger(new Buffer(3, "Int32"));
+    return osc.splitInteger(new Buffer(3), "Int32");
   });
 });
 
 test("splitOscArgument fails when given a bogus type", function () {
   return assert.throws(function () {
-    return osc.splitOscArgument(new Buffer(8, "bogus"));
+    return osc.splitOscArgument(new Buffer(8), "bogus");
   });
 });
 
@@ -2120,14 +2120,6 @@ test("timetagToDate converts timetag to a Date", function () {
   var date, date2, timetag;
   date = new Date();
   timetag = osc.dateToTimetag(date);
-  date2 = osc.timetagToDate(timetag);
-  return assertDatesEqual(date, date2);
-});
-
-test("timestampToTimetag converts a unix time to ntp array", function () {
-  var date, date2, timetag;
-  date = new Date();
-  timetag = osc.timestampToTimetag(date.getTime() / 1000);
   date2 = osc.timetagToDate(timetag);
   return assertDatesEqual(date, date2);
 });

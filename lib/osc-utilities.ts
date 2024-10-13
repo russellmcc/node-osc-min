@@ -1,391 +1,283 @@
-import binpack from "binpack";
-
 var IsArray,
-  StrictError,
   TWO_POW_32,
-  UNIX_EPOCH,
   getArrayArg,
   isOscBundleBuffer,
-  makeTimetag,
   mapBundleList,
-  oscTypeCodes,
-  padding,
-  toOscTypeAndArgs,
-  hasProp = {}.hasOwnProperty;
+  toOscTypeAndArgs;
 
-export const concat = function (buffers) {
-  var buffer, copyTo, destBuffer, j, k, l, len, len1, len2, sumLength;
-  if (!IsArray(buffers)) {
-    throw new Error("concat must take an array of buffers");
-  }
-  for (j = 0, len = buffers.length; j < len; j++) {
-    buffer = buffers[j];
-    if (!Buffer.isBuffer(buffer)) {
-      throw new Error("concat must take an array of buffers");
-    }
-  }
-  sumLength = 0;
-  for (k = 0, len1 = buffers.length; k < len1; k++) {
-    buffer = buffers[k];
-    sumLength += buffer.length;
-  }
-  destBuffer = new Buffer(sumLength);
-  copyTo = 0;
-  for (l = 0, len2 = buffers.length; l < len2; l++) {
-    buffer = buffers[l];
-    buffer.copy(destBuffer, copyTo);
-    copyTo += buffer.length;
-  }
-  return destBuffer;
-};
-
-export const toOscString = function (str, strict: boolean = false) {
-  var i, j, nullIndex, ref;
+export const toOscString = function (str: string): DataView {
   if (!(typeof str === "string")) {
     throw new Error("can't pack a non-string into an osc-string");
   }
-  nullIndex = str.indexOf("\u0000");
-  if (nullIndex !== -1 && strict) {
-    throw StrictError("Can't pack an osc-string that contains NULL characters");
+  if (str.indexOf("\u0000") !== -1) {
+    throw new OSCError(
+      "Can't pack an osc-string that contains NULL characters"
+    );
   }
-  if (nullIndex !== -1) {
-    str = str.slice(0, nullIndex);
-  }
-  for (
-    i = j = 0, ref = padding(str);
-    0 <= ref ? j < ref : j > ref;
-    i = 0 <= ref ? ++j : --j
-  ) {
-    str += "\u0000";
-  }
-  return new Buffer(str);
+
+  const buffer = new TextEncoder().encode(str);
+  const padding = 4 - (buffer.length % 4);
+  const ret = new ArrayBuffer(buffer.length + padding);
+  new Uint8Array(ret).set(buffer);
+  return new DataView(ret);
 };
 
-export const splitOscString = function (buffer, strict: boolean = false) {
-  var i, j, nullIndex, rawStr, ref, ref1, rest, splitPoint, str;
-  if (!Buffer.isBuffer(buffer)) {
-    throw StrictError("Can't split something that isn't a buffer");
-  }
-  rawStr = buffer.toString("utf8");
-  nullIndex = rawStr.indexOf("\u0000");
+export const splitOscString = function (buffer: DataView): {
+  value: string;
+  rest: DataView;
+} {
+  const uint8Array = new Uint8Array(
+    buffer.buffer,
+    buffer.byteOffset,
+    buffer.byteLength
+  );
+
+  // First, find the first null character.
+  const nullIndex = uint8Array.indexOf(0);
   if (nullIndex === -1) {
-    if (strict) {
-      throw new Error("All osc-strings must contain a null character");
-    }
-    return {
-      string: rawStr,
-      rest: new Buffer(0),
-    };
+    throw new Error("All osc-strings must contain a null character");
   }
-  str = rawStr.slice(0, nullIndex);
-  splitPoint = Buffer.byteLength(str) + padding(str);
-  if (strict && splitPoint > buffer.length) {
-    throw StrictError("Not enough padding for osc-string");
+  const stringPart = uint8Array.slice(0, nullIndex);
+  const padding = 4 - (stringPart.length % 4);
+
+  if (uint8Array.length < nullIndex + 1 + padding) {
+    throw new Error("Note enough padding for osc-string");
   }
-  if (strict) {
-    for (
-      i = j = ref = Buffer.byteLength(str), ref1 = splitPoint;
-      ref <= ref1 ? j < ref1 : j > ref1;
-      i = ref <= ref1 ? ++j : --j
-    ) {
-      if (buffer[i] !== 0) {
-        throw StrictError("Not enough or incorrect padding for osc-string");
-      }
+  // Verify padding is all zeros
+  for (let i = 0; i < padding; i++) {
+    if (uint8Array[stringPart.length + i] !== 0) {
+      throw new Error("Corrupt padding for osc-string");
     }
   }
-  rest = buffer.slice(splitPoint, buffer.length);
   return {
-    string: str,
-    rest: rest,
+    value: new TextDecoder().decode(stringPart),
+    rest: sliceDataView(buffer, nullIndex + 1 + padding),
   };
 };
 
-export const splitInteger = function (buffer, type?: string) {
-  var bytes, num, rest, value;
-  if (type == null) {
-    type = "Int32";
-  }
-  bytes = binpack["pack" + type](0).length;
-  if (buffer.length < bytes) {
+export type TimeTag = [number, number];
+
+const sliceDataView = (dataView: DataView, start: number) => {
+  return new DataView(
+    dataView.buffer,
+    dataView.byteOffset + start,
+    dataView.byteLength - start
+  );
+};
+
+export const splitInteger = function (buffer: DataView): {
+  value: number;
+  rest: DataView;
+} {
+  const bytes = 4;
+  if (buffer.byteLength < bytes) {
     throw new Error("buffer is not big enough for integer type");
   }
-  num = 0;
-  value = binpack["unpack" + type](buffer.slice(0, bytes), "big");
-  rest = buffer.slice(bytes, buffer.length);
   return {
-    integer: value,
-    rest: rest,
+    value: buffer.getInt32(0, false),
+    rest: sliceDataView(buffer, bytes),
   };
 };
 
-export const splitTimetag = function (buffer) {
-  var a, b, bytes, c, d, fractional, rest, seconds, type;
-  type = "UInt32";
-  bytes = binpack["pack" + type](0).length;
-  if (buffer.length < bytes * 2) {
+export const splitTimetag = function (buffer: DataView): {
+  value: TimeTag;
+  rest: DataView;
+} {
+  const bytes = 4;
+  if (buffer.byteLength < bytes * 2) {
     throw new Error("buffer is not big enough to contain a timetag");
   }
-  a = 0;
-  b = bytes;
-  seconds = binpack["unpack" + type](buffer.slice(a, b), "big");
-  c = bytes;
-  d = bytes + bytes;
-  fractional = binpack["unpack" + type](buffer.slice(c, d), "big");
-  rest = buffer.slice(d, buffer.length);
+  const seconds = buffer.getUint32(0, false);
+  const fractional = buffer.getUint32(bytes, false);
   return {
-    timetag: [seconds, fractional],
-    rest: rest,
+    value: [seconds, fractional],
+    rest: sliceDataView(buffer, bytes * 2),
   };
 };
 
-UNIX_EPOCH = 2208988800;
+const UNIX_EPOCH = 2208988800;
 
 TWO_POW_32 = 4294967296;
 
-export const dateToTimetag = function (date) {
-  return timestampToTimetag(date.getTime() / 1000);
+export const dateToTimetag = function (date: Date): TimeTag {
+  const timeStamp = date.getTime() / 1000;
+  const wholeSecs = Math.floor(timeStamp);
+  return makeTimetag(wholeSecs, timeStamp - wholeSecs);
 };
 
-export const timestampToTimetag = function (secs) {
-  var fracSeconds, wholeSecs;
-  wholeSecs = Math.floor(secs);
-  fracSeconds = secs - wholeSecs;
-  return makeTimetag(wholeSecs, fracSeconds);
-};
-
-export const timetagToTimestamp = function (timetag) {
-  var seconds;
-  seconds = timetag[0] + ntpToFractionalSeconds(timetag[1]);
-  return seconds - UNIX_EPOCH;
-};
-
-makeTimetag = function (unixseconds, fracSeconds) {
+const makeTimetag = function (
+  unixseconds: number,
+  fracSeconds: number
+): TimeTag {
   var ntpFracs, ntpSecs;
   ntpSecs = unixseconds + UNIX_EPOCH;
   ntpFracs = Math.round(TWO_POW_32 * fracSeconds);
   return [ntpSecs, ntpFracs];
 };
 
-export const timetagToDate = function (timetag) {
-  var date, dd, fracs, fractional, seconds;
-  (seconds = timetag[0]), (fractional = timetag[1]);
-  seconds = seconds - UNIX_EPOCH;
-  fracs = ntpToFractionalSeconds(fractional);
-  date = new Date();
-  date.setTime(seconds * 1000 + fracs * 1000);
-  dd = new Date();
-  dd.setUTCFullYear(date.getUTCFullYear());
-  dd.setUTCMonth(date.getUTCMonth());
-  dd.setUTCDate(date.getUTCDate());
-  dd.setUTCHours(date.getUTCHours());
-  dd.setUTCMinutes(date.getUTCMinutes());
-  dd.setUTCSeconds(date.getUTCSeconds());
-  dd.setUTCMilliseconds(fracs * 1000);
-  return dd;
+export const timetagToDate = function ([seconds, fractional]: TimeTag) {
+  const date = new Date();
+  date.setTime(
+    (seconds - UNIX_EPOCH) * 1000 + (fractional * 1000) / TWO_POW_32
+  );
+  return date;
 };
 
-export const deltaTimetag = function (seconds, now) {
-  var n;
-  n = (now != null ? now : new Date()) / 1000;
-  return timestampToTimetag(n + seconds);
+export const deltaTimetag = function (seconds, now?: Date) {
+  return dateToTimetag(
+    new Date((now ?? new Date()).getTime() + seconds * 1000)
+  );
 };
 
-export const ntpToFractionalSeconds = function (fracSeconds) {
-  return parseFloat(fracSeconds) / TWO_POW_32;
-};
-
-export const toTimetagBuffer = function (timetag) {
-  var high, low, type;
-  if (typeof timetag === "number") {
-    timetag = timestampToTimetag(timetag);
-  } else if (typeof timetag === "object" && "getTime" in timetag) {
-    timetag = dateToTimetag(timetag);
+export const toTimetagBuffer = function (timetag: Date | TimeTag): ArrayBuffer {
+  if (typeof timetag === "object" && "getTime" in timetag) {
+    [timetag[0], timetag[1]] = dateToTimetag(timetag);
   } else if (timetag.length !== 2) {
     throw new Error("Invalid timetag" + timetag);
   }
-  type = "UInt32";
-  high = binpack["pack" + type](timetag[0], "big");
-  low = binpack["pack" + type](timetag[1], "big");
-  return concat([high, low]);
+  const ret = new DataView(new ArrayBuffer(8));
+  ret.setUint32(0, timetag[0], false);
+  ret.setUint32(4, timetag[1], false);
+  return ret.buffer;
 };
 
-export const toIntegerBuffer = function (number, type?: string) {
-  if (type == null) {
-    type = "Int32";
-  }
-  if (typeof number !== "number") {
-    throw new Error("cannot pack a non-number into an integer buffer");
-  }
-  return binpack["pack" + type](number, "big");
+export const toIntegerBuffer = function (number: number): ArrayBuffer {
+  const ret = new DataView(new ArrayBuffer(4));
+  ret.setInt32(0, number, false);
+  return ret.buffer;
 };
 
-oscTypeCodes = {
+const oscTypeCodes = {
   s: {
     representation: "string",
-    split: function (buffer, strict) {
-      var split;
-      split = splitOscString(buffer, strict);
-      return {
-        value: split.string,
-        rest: split.rest,
-      };
-    },
-    toArg: function (value, strict) {
-      if (typeof value !== "string") {
-        throw new Error("expected string");
-      }
-      return toOscString(value, strict);
-    },
+    split: splitOscString,
+    toArg: toOscString,
   },
   i: {
     representation: "integer",
-    split: function (buffer, strict) {
-      var split;
-      split = splitInteger(buffer);
-      return {
-        value: split.integer,
-        rest: split.rest,
-      };
-    },
-    toArg: function (value, strict) {
-      if (typeof value !== "number") {
-        throw new Error("expected number");
-      }
-      return toIntegerBuffer(value);
-    },
+    split: splitInteger,
+    toArg: toIntegerBuffer,
   },
   t: {
     representation: "timetag",
-    split: function (buffer, strict) {
-      var split;
-      split = splitTimetag(buffer);
-      return {
-        value: split.timetag,
-        rest: split.rest,
-      };
-    },
-    toArg: function (value, strict) {
-      return toTimetagBuffer(value);
-    },
+    split: splitTimetag,
+    toArg: toTimetagBuffer,
   },
   f: {
     representation: "float",
-    split: function (buffer, strict) {
+    split: function (buffer: DataView) {
       return {
-        value: binpack.unpackFloat32(buffer.slice(0, 4), "big"),
-        rest: buffer.slice(4, buffer.length),
+        value: buffer.getFloat32(0, false),
+        rest: sliceDataView(buffer, 4),
       };
     },
-    toArg: function (value, strict) {
-      if (typeof value !== "number") {
-        throw new Error("expected number");
-      }
-      return binpack.packFloat32(value, "big");
+    toArg: function (value: number) {
+      const ret = new DataView(new ArrayBuffer(4));
+      ret.setFloat32(0, value, false);
+      return ret.buffer;
     },
   },
   d: {
     representation: "double",
-    split: function (buffer, strict) {
+    split: function (buffer) {
       return {
-        value: binpack.unpackFloat64(buffer.slice(0, 8), "big"),
+        value: new DataView(buffer).getFloat64(0, false),
         rest: buffer.slice(8, buffer.length),
       };
     },
-    toArg: function (value, strict) {
-      if (typeof value !== "number") {
-        throw new Error("expected number");
-      }
-      return binpack.packFloat64(value, "big");
+    toArg: function (value) {
+      const ret = new DataView(new ArrayBuffer(8));
+      ret.setFloat64(0, value, false);
+      return ret.buffer;
     },
   },
   b: {
     representation: "blob",
-    split: function (buffer, strict) {
-      var length, ref;
-      (ref = splitInteger(buffer)), (length = ref.integer), (buffer = ref.rest);
+    split: function (buffer: DataView) {
+      const { value: length, rest: data } = splitInteger(buffer);
       return {
-        value: buffer.slice(0, length),
-        rest: buffer.slice(length, buffer.length),
+        value: new DataView(data.buffer, data.byteOffset, length),
+        rest: sliceDataView(data, length),
       };
     },
-    toArg: function (value, strict) {
-      var size;
-      if (!Buffer.isBuffer(value)) {
-        throw new Error("expected node.js Buffer");
-      }
-      size = toIntegerBuffer(value.length);
-      return concat([size, value]);
+    toArg: function (value: DataView) {
+      const buffer = new DataView(new ArrayBuffer(4 + value.byteLength));
+      buffer.setUint32(0, value.byteLength, false);
+      new Uint8Array(
+        buffer.buffer,
+        buffer.byteOffset + 4,
+        buffer.byteLength - 4
+      ).set(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
+      return buffer.buffer;
     },
   },
   T: {
     representation: "true",
-    split: function (buffer, strict) {
+    split: function (buffer: DataView) {
       return {
         rest: buffer,
         value: true,
       };
     },
-    toArg: function (value, strict) {
-      if (!value && strict) {
-        throw new Error("true must be true");
-      }
-      return new Buffer(0);
+    toArg: function (value: true) {
+      return new ArrayBuffer(0);
     },
   },
   F: {
     representation: "false",
-    split: function (buffer, strict) {
+    split: function (buffer: DataView) {
       return {
         rest: buffer,
         value: false,
       };
     },
-    toArg: function (value, strict) {
-      if (value && strict) {
-        throw new Error("false must be false");
-      }
-      return new Buffer(0);
+    toArg: function (value: false) {
+      return new ArrayBuffer(0);
     },
   },
   N: {
     representation: "null",
-    split: function (buffer, strict) {
+    split: function (buffer: DataView) {
       return {
         rest: buffer,
         value: null,
       };
     },
-    toArg: function (value, strict) {
-      if (value && strict) {
-        throw new Error("null must be false");
-      }
-      return new Buffer(0);
+    toArg: function (value: null) {
+      return new ArrayBuffer(0);
     },
   },
   I: {
     representation: "bang",
-    split: function (buffer, strict) {
+    split: function (buffer: DataView) {
       return {
         rest: buffer,
         value: "bang",
       };
     },
-    toArg: function (value, strict) {
-      return new Buffer(0);
+    toArg: function (value: "bang") {
+      return new ArrayBuffer(0);
     },
   },
 };
 
-export const oscTypeCodeToTypeString = function (code) {
-  var ref;
-  return (ref = oscTypeCodes[code]) != null ? ref.representation : void 0;
+export type OscTypeCode = keyof typeof oscTypeCodes;
+
+export type Representation =
+  (typeof oscTypeCodes)[keyof typeof oscTypeCodes]["representation"];
+
+export const oscTypeCodeToTypeString = function (
+  code: string
+): (typeof oscTypeCodes)[keyof typeof oscTypeCodes]["representation"] | null {
+  return oscTypeCodes[code]?.representation ?? null;
 };
 
-export const typeStringToOscTypeCode = function (rep) {
-  var code, str;
+export const typeStringToOscTypeCode = function (
+  rep: Representation
+): OscTypeCode | null {
+  let code: OscTypeCode;
   for (code in oscTypeCodes) {
-    if (!hasProp.call(oscTypeCodes, code)) continue;
-    str = oscTypeCodes[code].representation;
+    const str = oscTypeCodes[code].representation;
     if (str === rep) {
       return code;
     }
@@ -393,7 +285,7 @@ export const typeStringToOscTypeCode = function (rep) {
   return null;
 };
 
-export const argToTypeCode = function (arg, strict) {
+export const argToTypeCode = function (arg) {
   var code, value;
   if (
     (arg != null ? arg.type : void 0) != null &&
@@ -403,7 +295,7 @@ export const argToTypeCode = function (arg, strict) {
     return code;
   }
   value = (arg != null ? arg.value : void 0) != null ? arg.value : arg;
-  if (strict && value == null) {
+  if (value == null) {
     throw new Error("Argument has no value");
   }
   if (typeof value === "string") {
@@ -428,27 +320,27 @@ export const argToTypeCode = function (arg, strict) {
   throw new Error("I don't know what type this is supposed to be.");
 };
 
-export const splitOscArgument = function (buffer, type, strict) {
+export const splitOscArgument = function (buffer, type) {
   var osctype;
   osctype = typeStringToOscTypeCode(type);
   if (osctype != null) {
-    return oscTypeCodes[osctype].split(buffer, strict);
+    return oscTypeCodes[osctype].split(buffer);
   } else {
     throw new Error("I don't understand how I'm supposed to unpack " + type);
   }
 };
 
-export const toOscArgument = function (value, type, strict) {
+export const toOscArgument = function (value, type) {
   var osctype;
   osctype = typeStringToOscTypeCode(type);
   if (osctype != null) {
-    return oscTypeCodes[osctype].toArg(value, strict);
+    return oscTypeCodes[osctype].toArg(value);
   } else {
     throw new Error("I don't know how to pack " + type);
   }
 };
 
-export const fromOscMessage = function (buffer, strict: boolean = false) {
+export const fromOscMessage = function (buffer) {
   var address,
     arg,
     args,
@@ -461,11 +353,9 @@ export const fromOscMessage = function (buffer, strict: boolean = false) {
     type,
     typeString,
     types;
-  (ref = splitOscString(buffer, strict)),
-    (address = ref.string),
-    (buffer = ref.rest);
-  if (strict && address[0] !== "/") {
-    throw StrictError("addresses must start with /");
+  (ref = splitOscString(buffer)), (address = ref.string), (buffer = ref.rest);
+  if (address[0] !== "/") {
+    throw new OSCError("addresses must start with /");
   }
   if (!buffer.length) {
     return {
@@ -473,17 +363,9 @@ export const fromOscMessage = function (buffer, strict: boolean = false) {
       args: [],
     };
   }
-  (ref1 = splitOscString(buffer, strict)),
-    (types = ref1.string),
-    (buffer = ref1.rest);
+  (ref1 = splitOscString(buffer)), (types = ref1.string), (buffer = ref1.rest);
   if (types[0] !== ",") {
-    if (strict) {
-      throw StrictError("Argument lists must begin with ,");
-    }
-    return {
-      address: address,
-      args: [],
-    };
+    throw new OSCError("Argument lists must begin with ,");
   }
   types = types.slice(1, +types.length + 1 || 9e9);
   args = [];
@@ -496,9 +378,7 @@ export const fromOscMessage = function (buffer, strict: boolean = false) {
     }
     if (type === "]") {
       if (arrayStack.length <= 1) {
-        if (strict) {
-          throw new StrictError("Mismatched ']' character.");
-        }
+        throw new OSCError("Mismatched ']' character.");
       } else {
         built = arrayStack.pop();
         arrayStack[arrayStack.length - 1].push({
@@ -512,7 +392,7 @@ export const fromOscMessage = function (buffer, strict: boolean = false) {
     if (typeString == null) {
       throw new Error("I don't understand the argument code " + type);
     }
-    arg = splitOscArgument(buffer, typeString, strict);
+    arg = splitOscArgument(buffer, typeString);
     if (arg != null) {
       buffer = arg.rest;
     }
@@ -521,8 +401,8 @@ export const fromOscMessage = function (buffer, strict: boolean = false) {
       value: arg != null ? arg.value : void 0,
     });
   }
-  if (arrayStack.length !== 1 && strict) {
-    throw new StrictError("Mismatched '[' character");
+  if (arrayStack.length !== 1) {
+    throw new OSCError("Mismatched '[' character");
   }
   return {
     address: address,
@@ -531,17 +411,15 @@ export const fromOscMessage = function (buffer, strict: boolean = false) {
   };
 };
 
-export const fromOscBundle = function (buffer, strict) {
+export const fromOscBundle = function (buffer) {
   var bundleTag, convertedElems, ref, ref1, timetag;
-  (ref = splitOscString(buffer, strict)),
-    (bundleTag = ref.string),
-    (buffer = ref.rest);
+  (ref = splitOscString(buffer)), (bundleTag = ref.string), (buffer = ref.rest);
   if (bundleTag !== "#bundle") {
     throw new Error("osc-bundles must begin with #bundle");
   }
   (ref1 = splitTimetag(buffer)), (timetag = ref1.timetag), (buffer = ref1.rest);
   convertedElems = mapBundleList(buffer, function (buffer) {
-    return fromOscPacket(buffer, strict);
+    return fromOscPacket(buffer);
   });
   return {
     timetag: timetag,
@@ -550,11 +428,11 @@ export const fromOscBundle = function (buffer, strict) {
   };
 };
 
-export const fromOscPacket = function (buffer, strict) {
-  if (isOscBundleBuffer(buffer, strict)) {
-    return fromOscBundle(buffer, strict);
+export const fromOscPacket = function (buffer) {
+  if (isOscBundleBuffer(buffer)) {
+    return fromOscBundle(buffer);
   } else {
-    return fromOscMessage(buffer, strict);
+    return fromOscMessage(buffer);
   }
 };
 
@@ -573,7 +451,7 @@ getArrayArg = function (arg) {
   }
 };
 
-toOscTypeAndArgs = function (argList, strict) {
+toOscTypeAndArgs = function (argList) {
   var arg,
     buff,
     j,
@@ -590,20 +468,20 @@ toOscTypeAndArgs = function (argList, strict) {
   for (j = 0, len = argList.length; j < len; j++) {
     arg = argList[j];
     if (getArrayArg(arg) != null) {
-      (ref = toOscTypeAndArgs(getArrayArg(arg), strict)),
+      (ref = toOscTypeAndArgs(getArrayArg(arg))),
         (thisType = ref[0]),
         (thisArgs = ref[1]);
       osctype += "[" + thisType + "]";
       oscargs = oscargs.concat(thisArgs);
       continue;
     }
-    typeCode = argToTypeCode(arg, strict);
+    typeCode = argToTypeCode(arg);
     if (typeCode != null) {
       value = arg != null ? arg.value : void 0;
       if (value === void 0) {
         value = arg;
       }
-      buff = toOscArgument(value, oscTypeCodeToTypeString(typeCode), strict);
+      buff = toOscArgument(value, oscTypeCodeToTypeString(typeCode));
       if (buff != null) {
         oscargs.push(buff);
         osctype += typeCode;
@@ -613,7 +491,7 @@ toOscTypeAndArgs = function (argList, strict) {
   return [osctype, oscargs];
 };
 
-export const toOscMessage = function (message, strict: boolean = false) {
+export const toOscMessage = function (message) {
   var address, allArgs, args, old_arg, oscaddr, oscargs, osctype, ref;
   address =
     (message != null ? message.address : void 0) != null
@@ -631,17 +509,15 @@ export const toOscMessage = function (message, strict: boolean = false) {
     args = [];
     args[0] = old_arg;
   }
-  oscaddr = toOscString(address, strict);
-  (ref = toOscTypeAndArgs(args, strict)),
-    (osctype = ref[0]),
-    (oscargs = ref[1]);
+  oscaddr = toOscString(address);
+  (ref = toOscTypeAndArgs(args)), (osctype = ref[0]), (oscargs = ref[1]);
   osctype = "," + osctype;
   allArgs = concat(oscargs);
   osctype = toOscString(osctype);
   return concat([oscaddr, osctype, allArgs]);
 };
 
-export const toOscBundle = function (bundle, strict) {
+export const toOscBundle = function (bundle) {
   var allElems,
     buff,
     e,
@@ -657,8 +533,8 @@ export const toOscBundle = function (bundle, strict) {
     ref1,
     size,
     timetag;
-  if (strict && (bundle != null ? bundle.timetag : void 0) == null) {
-    throw StrictError("bundles must have timetags.");
+  if ((bundle != null ? bundle.timetag : void 0) == null) {
+    throw new OSCError("bundles must have timetags.");
   }
   timetag =
     (ref = bundle != null ? bundle.timetag : void 0) != null ? ref : new Date();
@@ -675,7 +551,7 @@ export const toOscBundle = function (bundle, strict) {
   for (j = 0, len = elements.length; j < len; j++) {
     elem = elements[j];
     try {
-      buff = toOscPacket(elem, strict);
+      buff = toOscPacket(elem);
       size = toIntegerBuffer(buff.length);
       oscElems.push(concat([size, buff]));
     } catch (error) {
@@ -687,20 +563,20 @@ export const toOscBundle = function (bundle, strict) {
   return concat([oscBundleTag, oscTimeTag, allElems]);
 };
 
-export const toOscPacket = function (bundleOrMessage, strict) {
+export const toOscPacket = function (bundleOrMessage) {
   if ((bundleOrMessage != null ? bundleOrMessage.oscType : void 0) != null) {
     if (bundleOrMessage.oscType === "bundle") {
-      return toOscBundle(bundleOrMessage, strict);
+      return toOscBundle(bundleOrMessage);
     }
-    return toOscMessage(bundleOrMessage, strict);
+    return toOscMessage(bundleOrMessage);
   }
   if (
     (bundleOrMessage != null ? bundleOrMessage.timetag : void 0) != null ||
     (bundleOrMessage != null ? bundleOrMessage.elements : void 0) != null
   ) {
-    return toOscBundle(bundleOrMessage, strict);
+    return toOscBundle(bundleOrMessage);
   }
-  return toOscMessage(bundleOrMessage, strict);
+  return toOscMessage(bundleOrMessage);
 };
 
 export const applyMessageTranformerToBundle = function (transform) {
@@ -788,19 +664,15 @@ export const messageTransform = function (transform) {
 
 IsArray = Array.isArray;
 
-StrictError = function (str) {
-  return new Error("Strict Error: " + str);
-};
+class OSCError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "OSCError";
+  }
+}
 
-padding = function (str) {
-  var bufflength;
-  bufflength = Buffer.byteLength(str);
-  return 4 - (bufflength % 4);
-};
-
-isOscBundleBuffer = function (buffer, strict) {
-  var string;
-  string = splitOscString(buffer, strict).string;
+isOscBundleBuffer = function (buffer) {
+  const string = splitOscString(buffer).string;
   return string === "#bundle";
 };
 
