@@ -39,7 +39,7 @@ export const concat = function (buffers) {
   return destBuffer;
 };
 
-export const toOscString = function (str, strict) {
+export const toOscString = function (str, strict: boolean = false) {
   var i, j, nullIndex, ref;
   if (!(typeof str === "string")) {
     throw new Error("can't pack a non-string into an osc-string");
@@ -61,7 +61,7 @@ export const toOscString = function (str, strict) {
   return new Buffer(str);
 };
 
-export const splitOscString = function (buffer, strict) {
+export const splitOscString = function (buffer, strict: boolean = false) {
   var i, j, nullIndex, rawStr, ref, ref1, rest, splitPoint, str;
   if (!Buffer.isBuffer(buffer)) {
     throw StrictError("Can't split something that isn't a buffer");
@@ -100,7 +100,7 @@ export const splitOscString = function (buffer, strict) {
   };
 };
 
-export const splitInteger = function (buffer, type) {
+export const splitInteger = function (buffer, type?: string) {
   var bytes, num, rest, value;
   if (type == null) {
     type = "Int32";
@@ -209,7 +209,7 @@ export const toTimetagBuffer = function (timetag) {
   return concat([high, low]);
 };
 
-export const toIntegerBuffer = function (number, type) {
+export const toIntegerBuffer = function (number, type?: string) {
   if (type == null) {
     type = "Int32";
   }
@@ -448,7 +448,7 @@ export const toOscArgument = function (value, type, strict) {
   }
 };
 
-export const fromOscMessage = function (buffer, strict) {
+export const fromOscMessage = function (buffer, strict: boolean = false) {
   var address,
     arg,
     args,
@@ -613,7 +613,7 @@ toOscTypeAndArgs = function (argList, strict) {
   return [osctype, oscargs];
 };
 
-export const toOscMessage = function (message, strict) {
+export const toOscMessage = function (message, strict: boolean = false) {
   var address, allArgs, args, old_arg, oscaddr, oscargs, osctype, ref;
   address =
     (message != null ? message.address : void 0) != null
@@ -754,7 +754,11 @@ export const applyMessageTranformerToBundle = function (transform) {
   };
 };
 
-export const applyTransform = function (buffer, mTransform, bundleTransform) {
+export const applyTransform = function (
+  buffer,
+  mTransform,
+  bundleTransform?: (buffer: Buffer) => Buffer
+) {
   if (bundleTransform == null) {
     bundleTransform = applyMessageTranformerToBundle(mTransform);
   }

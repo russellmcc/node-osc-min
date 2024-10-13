@@ -1,4 +1,4 @@
-import * as utils from "./osc-utilities.mjs";
+import * as utils from "./osc-utilities.js";
 
 // ~api~
 //## Exported functions
