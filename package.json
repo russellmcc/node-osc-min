@@ -22,7 +22,7 @@
     "binpack": "~0"
   },
   "devDependencies": {
-    "mocha": "2.*"
+    "jest": "^29.7.0"
   },
   "directories": {
     "lib": "lib",
@@ -33,6 +33,6 @@
     "node": ">=0.10.0"
   },
   "scripts": {
-    "test": "mocha -u tdd test"
+    "test": "jest test"
   }
 }
