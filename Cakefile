@@ -1,14 +1,6 @@
 fs = require 'fs'
 child = require 'child_process'
 
-task 'test', 'run tests (requires development install)', (options) ->
-  process.env['NODE_PATH'] = './lib/:$NODE_PATH'
-  test = child.spawn 'mocha', ['--compilers', 'coffee:coffee-script/register', '-u', 'tdd', 'test']
-  test.stdout.pipe process.stdout
-  test.stderr.pipe process.stderr
-  test.on 'exit', (num) ->
-    return process.exit num
-
 spawnMochaCov = (reporter) ->
   return child.spawn 'mocha', ['--compilers', 'coffee:coffee-script/register', '-r', 'blanket', '-R', reporter, '-u', 'tdd', 'test']
 
