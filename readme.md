@@ -114,7 +114,7 @@ Where the `type` is one of the following:
 - `string` - string value
 - `float` - numeric value
 - `integer` - numeric value
-- `blob` - node.js Buffer value
+- `blob` - `ArrayBuffer`, `DataView`, `TypedArray` or node.js `Buffer`
 - `true` - value is boolean true
 - `false` - value is boolean false
 - `null` - no value

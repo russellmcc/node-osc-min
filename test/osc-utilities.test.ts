@@ -55,7 +55,7 @@ test("osc buffers with no null characters fail splitOscString", function () {
 
 test("osc buffers with non-null characters after a null character fail fromOscMessage in mode", function () {
   assert.throws(function () {
-    osc.fromOscMessage(new Buffer("abc\u0000abcd"));
+    osc.fromOscMessage(new TextEncoder().encode("abc\u0000abcd"));
   });
 });
 
@@ -69,7 +69,7 @@ test("basic strings pass fromOscString in mode", function () {
 
 test("osc buffers with non-four length fail in mode", function () {
   assert.throws(function () {
-    osc.fromOscMessage(new Buffer("abcd\u0000\u0000"));
+    osc.fromOscMessage(new TextEncoder().encode("abcd\u0000\u0000"));
   });
 });
 
@@ -91,19 +91,19 @@ test("splitOscString works with an over-allocated buffer", function () {
 
 test("splitOscString fails for just a string", function () {
   assert.throws(function () {
-    osc.splitOscString(new Buffer("testing it"));
+    osc.splitOscString(new TextEncoder().encode("testing it"));
   });
 });
 
 test("splitOscString fails for string with not enough padding", function () {
   assert.throws(function () {
-    osc.splitOscString(new Buffer("testing \u0000\u0000"));
+    osc.splitOscString(new TextEncoder().encode("testing \u0000\u0000"));
   });
 });
 
 test("splitOscString succeeds for strings with valid padding", function () {
   const { value, rest } = osc.splitOscString(
-    new Buffer("testing it\u0000\u0000aaaa")
+    new TextEncoder().encode("testing it\u0000\u0000aaaa")
   );
   assert.strictEqual(value, "testing it");
   assert.strictEqual(rest.byteLength, 4);
@@ -683,7 +683,7 @@ test("fromOscMessage with multiple args works", function () {
   osctype = osc.toOscString(",sbi");
   oscargs = [
     osc.toOscString("argu"),
-    osc.concat([osc.toIntegerBuffer(4), new Buffer("argu")]),
+    osc.concat([osc.toIntegerBuffer(4), new TextEncoder().encode("argu")]),
     osc.toIntegerBuffer(888),
   ];
   oscbuffer = osc.concat([oscaddr, osctype, osc.concat(oscargs)]);
@@ -1363,7 +1363,7 @@ test("addressTransform works with identity", function () {
   var i, k, ref, testBuffer, transformed;
   testBuffer = osc.concat([
     osc.toOscMessage("/message"),
-    new Buffer("gobblegobblewillsnever\u0000parse blah lbha"),
+    new TextEncoder().encode("gobblegobblewillsnever\u0000parse blah lbha"),
   ]);
   transformed = osc.applyTransform(
     testBuffer,
