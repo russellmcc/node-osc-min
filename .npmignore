@@ -4,3 +4,4 @@ test/
 examples/
 eslint.config.mjs
 tsconfig.json
+.github/
