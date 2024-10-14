@@ -228,6 +228,14 @@ const parseOscArg = (
         value: { type: "bang", value: "bang" },
         rest: toView(buffer),
       };
+    case "c": {
+      const view = toView(buffer);
+      const codepoint = view.getUint32(0, false);
+      return {
+        value: { type: "character", value: String.fromCodePoint(codepoint) },
+        rest: sliceDataView(view, 4),
+      };
+    }
   }
   return undefined;
 };
@@ -242,6 +250,18 @@ const toOscArgument = (arg: OscArgWithType): ArrayBuffer => {
       return toIntegerBuffer(arg.value);
     case "timetag":
       return toTimetagBuffer(arg.value);
+    case "character": {
+      const chars = [...arg.value];
+
+      if (chars.length !== 1) {
+        throw new OSCError("Can only send a single character");
+      }
+
+      const ret = new DataView(new ArrayBuffer(4));
+      // ! is safe here because we checked length === 1 above
+      ret.setUint32(0, chars[0]!.codePointAt(0) ?? 0, false);
+      return ret.buffer;
+    }
     case "float": {
       const ret = new DataView(new ArrayBuffer(4));
       ret.setFloat32(0, arg.value, false);
@@ -289,7 +309,8 @@ export type OscTypeCode =
   | "F"
   | "N"
   | "I"
-  | "S";
+  | "S"
+  | "c";
 
 const RepresentationToTypeCode: {
   [key in OscArgWithType["type"]]: OscTypeCode;
@@ -305,6 +326,7 @@ const RepresentationToTypeCode: {
   null: "N",
   bang: "I",
   symbol: "S",
+  character: "c",
 };
 
 export type OscArgOutput =
@@ -351,6 +373,10 @@ export type OscArgOutput =
   | {
       type: "bang";
       value: "bang";
+    }
+  | {
+      type: "character";
+      value: string;
     };
 
 export type OscArgOutputOrArray =
@@ -385,6 +411,10 @@ export type OscArgWithType =
   | {
       type: "blob";
       value: ArrayBuffer | TypedBufferLike;
+    }
+  | {
+      type: "character";
+      value: string;
     }
   | {
       type: "true";
