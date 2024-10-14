@@ -7,7 +7,9 @@ import * as utils from "./osc-utilities.js";
 //### .fromBuffer(buffer, [strict])
 // takes a node.js Buffer of a complete _OSC Packet_ and
 // outputs the javascript representation, or throws if the buffer is ill-formed.
-export const fromBuffer = function (buffer: utils.BufferInput) {
+export const fromBuffer = function (
+  buffer: utils.BufferInput
+): utils.OscPacketOutput {
   return utils.fromOscPacket(buffer);
 };
 
@@ -23,7 +25,9 @@ export const fromBuffer = function (buffer: utils.BufferInput) {
 //### .toBuffer(address, args[])
 // alternative syntax for above.  Assumes this is an _OSC Message_ as defined below,
 // and `args` is an array of _OSC Arguments_ or single _OSC Argument_
-export const toBuffer = function (object: utils.AcceptedOscPacket) {
+export const toBuffer = function (
+  object: utils.AcceptedOscPacket
+): ArrayBuffer {
   return utils.toOscPacket(object);
 };
 
@@ -49,7 +53,7 @@ export const toBuffer = function (object: utils.AcceptedOscPacket) {
 export const applyAddressTransform = function (
   buffer: utils.BufferInput,
   transform: (buffer: string) => string
-) {
+): DataView {
   return utils.applyTransform(buffer, utils.addressTransform(transform));
 };
 
@@ -69,7 +73,7 @@ export const applyAddressTransform = function (
 export const applyMessageTransform = function (
   buffer: utils.BufferInput,
   transform: (buffer: utils.OscMessageOutput) => utils.OscMessageOutput
-) {
+): DataView {
   return utils.applyTransform(buffer, utils.messageTransform(transform));
 };
 
@@ -81,7 +85,8 @@ export const applyMessageTransform = function (
 // Received OSC bundles converted with `fromBuffer` will have a timetag array:
 // [secondsSince1970, fractionalSeconds]
 // This utility is useful for logging. Accuracy is reduced to milliseconds.
-export const timetagToDate = utils.timetagToDate;
+export const timetagToDate: ([seconds, fractional]: utils.TimeTag) => Date =
+  utils.timetagToDate;
 
 //~api~
 //----
@@ -89,4 +94,4 @@ export const timetagToDate = utils.timetagToDate;
 // Convert a JavaScript Date to a NTP timetag array [secondsSince1970, fractionalSeconds].
 //
 // `toBuffer` already accepts Dates for timetags so you might not need this function. If you need to schedule bundles with finer than millisecond accuracy then you could use this to help assemble the NTP array.
-export const dateToTimetag = utils.dateToTimetag;
+export const dateToTimetag: (date: Date) => utils.TimeTag = utils.dateToTimetag;

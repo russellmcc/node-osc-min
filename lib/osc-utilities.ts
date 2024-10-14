@@ -126,7 +126,7 @@ const makeTimetag = function (
   return [ntpSecs, ntpFracs];
 };
 
-export const timetagToDate = function ([seconds, fractional]: TimeTag) {
+export const timetagToDate = function ([seconds, fractional]: TimeTag): Date {
   const date = new Date();
   date.setTime(
     (seconds - UNIX_EPOCH) * 1000 + (fractional * 1000) / TWO_POW_32
@@ -613,7 +613,7 @@ export const toOscBundle = function (bundle: AcceptedOscBundle): ArrayBuffer {
   return concat([oscBundleTag, oscTimeTag, ...oscElems]);
 };
 
-export const toOscPacket = function (packet: AcceptedOscPacket) {
+export const toOscPacket = function (packet: AcceptedOscPacket): ArrayBuffer {
   if (typeof packet === "object" && "timetag" in packet) {
     return toOscBundle(packet);
   } else {

@@ -18,7 +18,7 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
         "noUncheckedIndexedAccess": true,
-        // "isolatedDeclarations": true,
+        "isolatedDeclarations": true,
         "isolatedModules": true
     }
 }
