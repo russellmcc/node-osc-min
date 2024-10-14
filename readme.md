@@ -133,6 +133,7 @@ There have been a few breaking changes from the 1.0 version:
 - Many explicit error messages for passing in data of the wrong type have been removed. We encourage you to use typescript to prevent these sorts of errors.
 - Functions that used to return `Buffer` now return `DataView`
 - TimeTags must be specified as `Date`s or `[number, number]` arrays, and are always returned as `[number, number]` arrays. To convert between arrays and `Date`s, use `dateToTimetag` and `timetagToDate`.
+- The two-argument version of `toBuffer` has been removed.
 
 ## License
 

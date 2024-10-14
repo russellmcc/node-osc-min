@@ -374,7 +374,7 @@ export type OscArgWithType =
       type: "bang";
     };
 
-export type AcceptedOscArg =
+export type OscArgInput =
   | OscArgWithType
   | string
   | number
@@ -386,12 +386,12 @@ export type AcceptedOscArg =
   | "bang"
   | null;
 
-export type AcceptedOscArgOrArray =
-  | AcceptedOscArg
-  | AcceptedOscArgOrArray[]
-  | { type: "array"; value: AcceptedOscArgOrArray[] };
+export type OscArgOrArrayInput =
+  | OscArgInput
+  | OscArgOrArrayInput[]
+  | { type: "array"; value: OscArgOrArrayInput[] };
 
-const toOscArgWithType = (arg: AcceptedOscArg): OscArgWithType => {
+const toOscArgWithType = (arg: OscArgInput): OscArgWithType => {
   if (arg === null) {
     return { type: "null" };
   }
@@ -526,7 +526,7 @@ export const fromOscPacket = (buffer: BufferInput): OscPacketOutput => {
 };
 
 const toOscTypeAndArgs = (
-  args: AcceptedOscArgOrArray[]
+  args: OscArgOrArrayInput[]
 ): {
   type: string;
   args: ArrayBuffer[];
@@ -573,11 +573,11 @@ export const concat = (buffers: BufferInput[]): ArrayBuffer => {
   return result.buffer;
 };
 
-export type AcceptedOscMessage =
+export type OscMessageInput =
   | string
-  | { address: string; args?: AcceptedOscArgOrArray[] | AcceptedOscArg };
+  | { address: string; args?: OscArgOrArrayInput[] | OscArgInput };
 
-export const toOscMessage = (message: AcceptedOscMessage): DataView => {
+export const toOscMessage = (message: OscMessageInput): DataView => {
   const address = typeof message === "string" ? message : message.address;
   const rawArgs =
     typeof message === "string"
@@ -592,14 +592,14 @@ export const toOscMessage = (message: AcceptedOscMessage): DataView => {
   return new DataView(concat([oscaddr, toOscString("," + type)].concat(args)));
 };
 
-export type AcceptedOscBundle = {
+export type OscBundleInput = {
   timetag: TimeTag | Date;
-  elements?: AcceptedOscPacket[] | AcceptedOscPacket;
+  elements?: OscPacketInput[] | OscPacketInput;
 };
 
-export type AcceptedOscPacket = AcceptedOscBundle | AcceptedOscMessage;
+export type OscPacketInput = OscBundleInput | OscMessageInput;
 
-export const toOscBundle = (bundle: AcceptedOscBundle): DataView => {
+export const toOscBundle = (bundle: OscBundleInput): DataView => {
   const elements =
     bundle.elements === undefined
       ? []
@@ -616,7 +616,7 @@ export const toOscBundle = (bundle: AcceptedOscBundle): DataView => {
   return new DataView(concat([oscBundleTag, oscTimeTag, ...oscElems]));
 };
 
-export const toOscPacket = (packet: AcceptedOscPacket): DataView => {
+export const toOscPacket = (packet: OscPacketInput): DataView => {
   if (typeof packet === "object" && "timetag" in packet) {
     return toOscBundle(packet);
   } else {
