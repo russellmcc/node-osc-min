@@ -134,12 +134,6 @@ export const timetagToDate = function ([seconds, fractional]: TimeTag) {
   return date;
 };
 
-export const deltaTimetag = function (seconds: number, now?: Date) {
-  return dateToTimetag(
-    new Date((now ?? new Date()).getTime() + seconds * 1000)
-  );
-};
-
 export const toTimetagBuffer = function (timetag: Date | TimeTag): ArrayBuffer {
   let high, low;
   if (typeof timetag === "object" && "getTime" in timetag) {

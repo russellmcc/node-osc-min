@@ -1,21 +1,14 @@
 import * as osc from "../lib/osc-utilities";
 import * as assert from "assert";
 
-var assertDatesEqual,
-  e,
-  roundTripBundle,
-  testData,
-  testString,
-  testStringLength;
-
-testString = function (str, expected_len) {
+const testString = function (str, expected_len) {
   return {
     str: str,
     len: expected_len,
   };
 };
 
-testData = [
+const testData = [
   testString("abc", 4),
   testString("abcd", 8),
   testString("abcde", 8),
@@ -23,9 +16,9 @@ testData = [
   testString("abcdefg", 8),
 ];
 
-testStringLength = function (str, expected_len) {
+const testStringLength = function (str, expected_len) {
   const oscstr = osc.toOscString(str);
-  return assert.strictEqual(oscstr.byteLength, expected_len);
+  assert.strictEqual(oscstr.byteLength, expected_len);
 };
 
 test("basic strings length", function () {
@@ -49,19 +42,19 @@ test("basic strings round trip", function () {
 });
 
 test("strings with null characters fail toOscString", function () {
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.toOscString("\u0000");
   });
 });
 
 test("osc buffers with no null characters fail splitOscString", function () {
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.splitOscString(new TextEncoder().encode("abc"));
   });
 });
 
 test("osc buffers with non-null characters after a null character fail fromOscMessage in mode", function () {
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.fromOscMessage(new Buffer("abc\u0000abcd"));
   });
 });
@@ -75,7 +68,7 @@ test("basic strings pass fromOscString in mode", function () {
 });
 
 test("osc buffers with non-four length fail in mode", function () {
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.fromOscMessage(new Buffer("abcd\u0000\u0000"));
   });
 });
@@ -83,28 +76,27 @@ test("osc buffers with non-four length fail in mode", function () {
 test("splitOscString of an osc-string matches the string", function () {
   const { value, rest } = osc.splitOscString(osc.toOscString("testing it"));
   assert.strictEqual(value, "testing it");
-  return assert.strictEqual(rest.byteLength, 0);
+  assert.strictEqual(rest.byteLength, 0);
 });
 
 test("splitOscString works with an over-allocated buffer", function () {
-  var ref, split;
   const overallocated = new ArrayBuffer(16);
   new Uint8Array(overallocated).set(
     new Uint8Array(osc.toOscString("testing it"))
   );
   const { value, rest } = osc.splitOscString(overallocated);
   assert.strictEqual(value, "testing it");
-  return assert.strictEqual(rest.byteLength, 4);
+  assert.strictEqual(rest.byteLength, 4);
 });
 
 test("splitOscString fails for just a string", function () {
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.splitOscString(new Buffer("testing it"));
   });
 });
 
 test("splitOscString fails for string with not enough padding", function () {
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.splitOscString(new Buffer("testing \u0000\u0000"));
   });
 });
@@ -114,11 +106,11 @@ test("splitOscString succeeds for strings with valid padding", function () {
     new Buffer("testing it\u0000\u0000aaaa")
   );
   assert.strictEqual(value, "testing it");
-  return assert.strictEqual(rest.byteLength, 4);
+  assert.strictEqual(rest.byteLength, 4);
 });
 
 test("splitOscString fails for string with invalid padding", function () {
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.splitOscString(
       new TextEncoder().encode("testing it\u0000aaaaa")
     );
@@ -126,7 +118,7 @@ test("splitOscString fails for string with invalid padding", function () {
 });
 
 test("splitInteger fails when sent a buffer that's too small", function () {
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.splitInteger(new ArrayBuffer(3));
   });
 });
@@ -135,7 +127,7 @@ test("fromOscMessage with no type string works", function () {
   var translate;
   translate = osc.fromOscMessage(osc.toOscString("/stuff"));
   assert.strictEqual(translate != null ? translate.address : void 0, "/stuff");
-  return assert.deepEqual(translate != null ? translate.args : void 0, []);
+  assert.deepEqual(translate != null ? translate.args : void 0, []);
 });
 
 test("fromOscMessage with type string and no args works", function () {
@@ -146,7 +138,7 @@ test("fromOscMessage with type string and no args works", function () {
   oscmessage.set(new Uint8Array(osctype), oscaddr.byteLength);
   const translate = osc.fromOscMessage(oscmessage);
   assert.strictEqual(translate.address, "/stuff");
-  return assert.deepEqual(translate.args, []);
+  assert.deepEqual(translate.args, []);
 });
 
 test("fromOscMessage with string argument works", function () {
@@ -166,7 +158,7 @@ test("fromOscMessage with string argument works", function () {
       : void 0,
     "string"
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     translate != null
       ? (ref2 = translate.args) != null
         ? (ref3 = ref2[0]) != null
@@ -194,7 +186,7 @@ test("fromOscMessage with true argument works", function () {
       : void 0,
     "true"
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     translate != null
       ? (ref2 = translate.args) != null
         ? (ref3 = ref2[0]) != null
@@ -222,7 +214,7 @@ test("fromOscMessage with false argument works", function () {
       : void 0,
     "false"
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     translate != null
       ? (ref2 = translate.args) != null
         ? (ref3 = ref2[0]) != null
@@ -250,7 +242,7 @@ test("fromOscMessage with null argument works", function () {
       : void 0,
     "null"
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     translate != null
       ? (ref2 = translate.args) != null
         ? (ref3 = ref2[0]) != null
@@ -278,7 +270,7 @@ test("fromOscMessage with bang argument works", function () {
       : void 0,
     "bang"
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     translate != null
       ? (ref2 = translate.args) != null
         ? (ref3 = ref2[0]) != null
@@ -302,10 +294,7 @@ test("fromOscMessage with blob argument works", function () {
   );
   assert.strictEqual(translate.address, "/stuff");
   assert.strictEqual(translate.args[0].type, "blob");
-  return assert.strictEqual(
-    new TextDecoder().decode(translate.args[0].value),
-    "argu"
-  );
+  assert.strictEqual(new TextDecoder().decode(translate.args[0].value), "argu");
 });
 
 test("fromOscMessage with integer argument works", function () {
@@ -325,7 +314,7 @@ test("fromOscMessage with integer argument works", function () {
       : void 0,
     "integer"
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     translate != null
       ? (ref2 = translate.args) != null
         ? (ref3 = ref2[0]) != null
@@ -355,7 +344,7 @@ test("fromOscMessage with timetag argument works", function () {
       : void 0,
     "timetag"
   );
-  return assert.deepEqual(
+  assert.deepEqual(
     translate != null
       ? (ref2 = translate.args) != null
         ? (ref3 = ref2[0]) != null
@@ -373,7 +362,7 @@ test("fromOscMessage with mismatched array throws", function () {
   assert.throws(function () {
     return osc.fromOscMessage(osc.concat([oscaddr, osc.toOscString(",[")]));
   });
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.fromOscMessage(osc.concat([oscaddr, osc.toOscString(",]")]));
   });
 });
@@ -406,7 +395,7 @@ test("fromOscMessage with empty array argument works", function () {
       : void 0,
     0
   );
-  return assert.deepEqual(
+  assert.deepEqual(
     translate != null
       ? (ref5 = translate.args) != null
         ? (ref6 = ref5[0]) != null
@@ -475,7 +464,7 @@ test("fromOscMessage with bang array argument works", function () {
       : void 0,
     "bang"
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     translate != null
       ? (ref9 = translate.args) != null
         ? (ref10 = ref9[0]) != null
@@ -550,7 +539,7 @@ test("fromOscMessage with string array argument works", function () {
       : void 0,
     "string"
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     translate != null
       ? (ref9 = translate.args) != null
         ? (ref10 = ref9[0]) != null
@@ -670,7 +659,7 @@ test("fromOscMessage with nested array argument works", function () {
       : void 0,
     "bang"
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     translate != null
       ? (ref20 = translate.args) != null
         ? (ref21 = ref20[0]) != null
@@ -712,7 +701,7 @@ test("fromOscMessage with multiple args works", function () {
       : void 0,
     "string"
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     translate != null
       ? (ref2 = translate.args) != null
         ? (ref3 = ref2[0]) != null
@@ -728,7 +717,7 @@ test("fromOscMessage fails if type string has no comma", function () {
   var oscaddr, osctype;
   oscaddr = osc.toOscString("/stuff");
   osctype = osc.toOscString("fake");
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.fromOscMessage(osc.concat([oscaddr, osctype]));
   });
 });
@@ -737,7 +726,7 @@ test("fromOscMessage fails if type address doesn't begin with /", function () {
   var oscaddr, osctype;
   oscaddr = osc.toOscString("stuff");
   osctype = osc.toOscString(",");
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.fromOscMessage(osc.concat([oscaddr, osctype]));
   });
 });
@@ -750,7 +739,7 @@ test("fromOscBundle works with no messages", function () {
   buffer = osc.concat([oscbundle, osctimetag]);
   translate = osc.fromOscBundle(buffer);
   assert.deepEqual(translate != null ? translate.timetag : void 0, timetag);
-  return assert.deepEqual(translate != null ? translate.elements : void 0, []);
+  assert.deepEqual(translate != null ? translate.elements : void 0, []);
 });
 
 test("fromOscBundle works with single message", function () {
@@ -765,7 +754,7 @@ test("fromOscBundle works with single message", function () {
   const translate: any = osc.fromOscBundle(buffer);
   assert.deepEqual(translate.timetag, timetag);
   assert.strictEqual(translate.elements.length, 1);
-  return assert.strictEqual(translate.elements[0].address, "/addr");
+  assert.strictEqual(translate.elements[0].address, "/addr");
 });
 
 test("fromOscBundle works with multiple messages", function () {
@@ -852,7 +841,7 @@ test("fromOscBundle works with non-understood messages", function () {
 test("fromOscBundle fails with bad bundle ID", function () {
   var oscbundle;
   oscbundle = osc.toOscString("#blunder");
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.fromOscBundle(oscbundle);
   });
 });
@@ -865,7 +854,7 @@ test("fromOscBundle fails with ridiculous sizes", function () {
     osc.toTimetagBuffer(timetag),
     osc.toIntegerBuffer(999999),
   ]);
-  return assert.throws(function () {
+  assert.throws(function () {
     return osc.fromOscBundle(oscbundle);
   });
 });
@@ -1015,7 +1004,7 @@ test("toOscMessage with args shortcut works", function () {
       : void 0,
     13
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     roundTrip != null
       ? (ref3 = roundTrip.args) != null
         ? (ref4 = ref3[0]) != null
@@ -1066,7 +1055,7 @@ test("toOscMessage with single string argument works", function () {
       : void 0,
     "strr"
   );
-  return assert.strictEqual(
+  assert.strictEqual(
     roundTrip != null
       ? (ref3 = roundTrip.args) != null
         ? (ref4 = ref3[0]) != null
@@ -1096,7 +1085,7 @@ test("toOscMessage with type true works", function () {
   );
   assert.strictEqual(roundTrip.args.length, 1);
   assert.strictEqual(roundTrip.args[0].value, true);
-  return assert.strictEqual(roundTrip.args[0].type, "true");
+  assert.strictEqual(roundTrip.args[0].type, "true");
 });
 
 test("toOscMessage with type false works", function () {
@@ -1109,7 +1098,7 @@ test("toOscMessage with type false works", function () {
   );
   assert.strictEqual(roundTrip.args.length, 1);
   assert.strictEqual(roundTrip.args[0].value, false);
-  return assert.strictEqual(roundTrip.args[0].type, "false");
+  assert.strictEqual(roundTrip.args[0].type, "false");
 });
 
 test("toOscMessage with type bang argument works", function () {
@@ -1124,7 +1113,7 @@ test("toOscMessage with type bang argument works", function () {
   );
   assert.strictEqual(roundTrip.args.length, 1);
   assert.strictEqual(roundTrip.args[0].value, "bang");
-  return assert.strictEqual(roundTrip.args[0].type, "bang");
+  assert.strictEqual(roundTrip.args[0].type, "bang");
 });
 
 test("toOscMessage with type timetag argument works", function () {
@@ -1155,7 +1144,7 @@ test("toOscMessage with type null works", function () {
   );
   assert.strictEqual(roundTrip.args.length, 1);
   assert.strictEqual(roundTrip.args[0].value, null);
-  return assert.strictEqual(roundTrip.args[0].type, "null");
+  assert.strictEqual(roundTrip.args[0].type, "null");
 });
 
 test("toOscMessage with float argument works", function () {
@@ -1171,7 +1160,7 @@ test("toOscMessage just a string works", function () {
   var message;
   message = osc.fromOscMessage(osc.toOscMessage("/bleh"));
   assert.strictEqual(message.address, "/bleh");
-  return assert.strictEqual(message.args.length, 0);
+  assert.strictEqual(message.args.length, 0);
 });
 
 test("toOscMessage with multiple args works", function () {
@@ -1187,7 +1176,7 @@ test("toOscMessage with integer argument works", function () {
   ]);
 });
 
-roundTripBundle = function (elems) {
+const roundTripBundle = function (elems) {
   var i,
     k,
     length,
@@ -1266,7 +1255,7 @@ test("toOscBundle with just a string works", function () {
 });
 
 test("toOscBundle with just a number fails", function () {
-  return assert.throws(function () {
+  assert.throws(function () {
     return roundTripBundle(78);
   });
 });
@@ -1293,7 +1282,7 @@ test("toOscBundle with nested bundles works", function () {
 test("identity applyTransform works with single message", function () {
   var testBuffer;
   testBuffer = osc.toOscString("/message");
-  return assert.deepEqual(
+  assert.deepEqual(
     osc.applyTransform(testBuffer, function (a) {
       return a;
     }),
@@ -1304,7 +1293,7 @@ test("identity applyTransform works with single message", function () {
 test("nullary applyTransform works with single message", function () {
   var testBuffer;
   testBuffer = osc.toOscString("/message");
-  return assert.strictEqual(
+  assert.strictEqual(
     osc.applyTransform(testBuffer, function (a) {
       return new DataView(new ArrayBuffer(0));
     }).byteLength,
@@ -1320,7 +1309,7 @@ test("toOscPacket works when explicitly set to bundle", function () {
       elements: [],
     })
   );
-  return assert.strictEqual(roundTrip.elements.length, 0);
+  assert.strictEqual(roundTrip.elements.length, 0);
 });
 
 test("toOscPacket works when explicitly set to message", function () {
@@ -1332,7 +1321,7 @@ test("toOscPacket works when explicitly set to message", function () {
     })
   );
   assert.strictEqual(roundTrip.args.length, 0);
-  return assert.strictEqual(roundTrip.address, "/bleh");
+  assert.strictEqual(roundTrip.address, "/bleh");
 });
 
 test("identity applyTransform works with a simple bundle", function () {
@@ -1368,7 +1357,7 @@ test("applyMessageTranformerToBundle fails on bundle without tag", function () {
   func = osc.applyMessageTranformerToBundle(function (a) {
     return a;
   });
-  return assert.throws(function () {
+  assert.throws(function () {
     return func(
       osc.concat([osc.toOscMessage("#grundle"), osc.toIntegerBuffer(0)])
     );
@@ -1497,37 +1486,19 @@ test("messageTransform works with bundles", function () {
   );
 });
 
-assertDatesEqual = function (date1, date2) {
-  return assert(
+const assertDatesEqual = function (date1, date2) {
+  assert(
     Math.abs(date1.getTime() - date2.getTime()) <= 1,
     "" + date1 + " != " + date2
   );
 };
-
-test("toTimetagBuffer works with a Date", function () {
-  var buf, date;
-  date = new Date();
-  buf = osc.toTimetagBuffer(date);
-});
-
-test("toTimetagBuffer works with a timetag array", function () {
-  var buf, timetag;
-  timetag = [1000, 10001];
-  buf = osc.toTimetagBuffer(timetag);
-});
-
-test("deltaTimetag makes array from a delta", function () {
-  var delta, ntp;
-  delta = 1.2345;
-  ntp = osc.deltaTimetag(delta);
-});
 
 test("timetagToDate converts timetag to a Date", function () {
   var date, date2, timetag;
   date = new Date();
   timetag = osc.dateToTimetag(date);
   date2 = osc.timetagToDate(timetag);
-  return assertDatesEqual(date, date2);
+  assertDatesEqual(date, date2);
 });
 
 test("dateToTimetag converts date to ntp array", function () {
@@ -1535,7 +1506,7 @@ test("dateToTimetag converts date to ntp array", function () {
   date = new Date();
   timetag = osc.dateToTimetag(date);
   date2 = osc.timetagToDate(timetag);
-  return assertDatesEqual(date, date2);
+  assertDatesEqual(date, date2);
 });
 
 test("splitTimetag returns timetag from a buffer", function () {
@@ -1546,5 +1517,5 @@ test("splitTimetag returns timetag from a buffer", function () {
     new TextEncoder().encode(rest),
   ]);
   const { value: timetag2 } = osc.splitTimetag(buf);
-  return assert.deepEqual(timetag2, timetag);
+  assert.deepEqual(timetag2, timetag);
 });

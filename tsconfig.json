@@ -13,9 +13,8 @@
         "outDir": "./dist",
         "rootDir": "./lib",
         /* Linting */
-        // "strict": true,
         "strict": true,
-        // "noUnusedLocals": true,
+        "noUnusedLocals": true,
         // "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
         "noUncheckedIndexedAccess": true,
