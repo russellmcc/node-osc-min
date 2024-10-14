@@ -1157,6 +1157,15 @@ test("toOscMessage just a string works", function () {
   assert.strictEqual(message.args.length, 0);
 });
 
+test("roudtrip symbol works", () => {
+  roundTripMessage([
+    {
+      type: "symbol",
+      value: "bleh",
+    },
+  ]);
+});
+
 test("toOscMessage with multiple args works", function () {
   roundTripMessage(["str", 7, new ArrayBuffer(30), 6]);
 });

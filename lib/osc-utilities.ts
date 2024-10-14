@@ -168,6 +168,10 @@ const parseOscArg = (
       const { value, rest } = splitOscString(buffer);
       return { value: { type: "string", value }, rest };
     }
+    case "S": {
+      const { value, rest } = splitOscString(buffer);
+      return { value: { type: "symbol", value }, rest };
+    }
     case "i": {
       const { value, rest } = splitInteger(buffer);
       return { value: { type: "integer", value }, rest };
@@ -232,6 +236,8 @@ const toOscArgument = (arg: OscArgWithType): ArrayBuffer => {
   switch (arg.type) {
     case "string":
       return toOscString(arg.value);
+    case "symbol":
+      return toOscString(arg.value);
     case "integer":
       return toIntegerBuffer(arg.value);
     case "timetag":
@@ -282,7 +288,8 @@ export type OscTypeCode =
   | "T"
   | "F"
   | "N"
-  | "I";
+  | "I"
+  | "S";
 
 const RepresentationToTypeCode: {
   [key in OscArgWithType["type"]]: OscTypeCode;
@@ -297,11 +304,16 @@ const RepresentationToTypeCode: {
   false: "F",
   null: "N",
   bang: "I",
+  symbol: "S",
 };
 
 export type OscArgOutput =
   | {
       type: "string";
+      value: string;
+    }
+  | {
+      type: "symbol";
       value: string;
     }
   | {
@@ -348,6 +360,10 @@ export type OscArgOutputOrArray =
 export type OscArgWithType =
   | {
       type: "string";
+      value: string;
+    }
+  | {
+      type: "symbol";
       value: string;
     }
   | {
