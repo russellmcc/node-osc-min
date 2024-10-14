@@ -1294,7 +1294,7 @@ test("nullary applyTransform works with single message", function () {
   var testBuffer;
   testBuffer = osc.toOscString("/message");
   assert.strictEqual(
-    osc.applyTransform(testBuffer, function (a) {
+    osc.applyTransform(testBuffer, function () {
       return new DataView(new ArrayBuffer(0));
     }).byteLength,
     0
