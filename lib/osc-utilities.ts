@@ -251,6 +251,17 @@ const parseOscArg = (
         rest: sliceDataView(view, 4),
       };
     }
+    case "m": {
+      const view = toView(buffer);
+      if (view.byteLength < 4) {
+        throw new OSCError("buffer is not big enough to contain a midi packet");
+      }
+      const array = new Uint8Array(view.buffer, view.byteOffset, 4);
+      return {
+        value: { type: "midi", value: [...array] as OscMidiPacket },
+        rest: sliceDataView(view, 4),
+      };
+    }
   }
   return undefined;
 };
@@ -310,6 +321,9 @@ const toOscArgument = (arg: OscArgWithType): ArrayBuffer => {
       ret.setUint8(3, arg.value.alpha);
       return ret.buffer;
     }
+    case "midi": {
+      return new Uint8Array(arg.value).buffer;
+    }
     case "true":
       return new ArrayBuffer(0);
     case "false":
@@ -334,7 +348,8 @@ export type OscTypeCode =
   | "I"
   | "S"
   | "c"
-  | "r";
+  | "r"
+  | "m";
 
 const RepresentationToTypeCode: {
   [key in OscArgWithType["type"]]: OscTypeCode;
@@ -352,7 +367,10 @@ const RepresentationToTypeCode: {
   symbol: "S",
   character: "c",
   color: "r",
+  midi: "m",
 };
+
+export type OscMidiPacket = [number, number, number, number];
 
 export type OscArgOutput =
   | {
@@ -382,6 +400,10 @@ export type OscArgOutput =
   | {
       type: "blob";
       value: DataView;
+    }
+  | {
+      type: "midi";
+      value: OscMidiPacket;
     }
   | {
       type: "color";
@@ -455,6 +477,10 @@ export type OscArgWithType =
   | {
       type: "color";
       value: OscColor;
+    }
+  | {
+      type: "midi";
+      value: OscMidiPacket;
     }
   | {
       type: "true";

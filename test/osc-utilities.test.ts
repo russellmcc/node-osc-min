@@ -1214,6 +1214,15 @@ test("Roundtrip color works", () => {
   ]);
 });
 
+test("Roundtrip midi works", () => {
+  roundTripMessage([
+    {
+      type: "midi",
+      value: [1, 2, 3, 4],
+    },
+  ]);
+});
+
 test("toOscMessage with multiple args works", function () {
   roundTripMessage(["str", 7, new ArrayBuffer(30), 6]);
 });
