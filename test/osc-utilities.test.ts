@@ -1214,6 +1214,10 @@ test("Roundtrip color works", () => {
   ]);
 });
 
+test("Roundtrip bigint works", () => {
+  roundTripMessage([1234567891234n]);
+});
+
 test("Roundtrip midi works", () => {
   roundTripMessage([
     {

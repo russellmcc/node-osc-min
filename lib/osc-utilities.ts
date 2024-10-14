@@ -251,6 +251,14 @@ const parseOscArg = (
         rest: sliceDataView(view, 4),
       };
     }
+    case "h": {
+      const view = toView(buffer);
+      const bigint = view.getBigInt64(0, false);
+      return {
+        value: { type: "bigint", value: bigint },
+        rest: sliceDataView(view, 8),
+      };
+    }
     case "m": {
       const view = toView(buffer);
       if (view.byteLength < 4) {
@@ -291,6 +299,11 @@ const toOscArgument = (arg: OscArgWithType): ArrayBuffer => {
     case "float": {
       const ret = new DataView(new ArrayBuffer(4));
       ret.setFloat32(0, arg.value, false);
+      return ret.buffer;
+    }
+    case "bigint": {
+      const ret = new DataView(new ArrayBuffer(8));
+      ret.setBigInt64(0, arg.value, false);
       return ret.buffer;
     }
     case "double": {
@@ -349,7 +362,8 @@ export type OscTypeCode =
   | "S"
   | "c"
   | "r"
-  | "m";
+  | "m"
+  | "h";
 
 const RepresentationToTypeCode: {
   [key in OscArgWithType["type"]]: OscTypeCode;
@@ -368,6 +382,7 @@ const RepresentationToTypeCode: {
   character: "c",
   color: "r",
   midi: "m",
+  bigint: "h",
 };
 
 export type OscMidiPacket = [number, number, number, number];
@@ -384,6 +399,10 @@ export type OscArgOutput =
   | {
       type: "integer";
       value: number;
+    }
+  | {
+      type: "bigint";
+      value: bigint;
     }
   | {
       type: "timetag";
@@ -455,6 +474,10 @@ export type OscArgWithType =
       value: number;
     }
   | {
+      type: "bigint";
+      value: bigint;
+    }
+  | {
       type: "timetag";
       value: TimeTag | Date;
     }
@@ -499,6 +522,7 @@ export type OscArgInput =
   | OscArgWithType
   | string
   | number
+  | bigint
   | Date
   | OscColor
   | ArrayBuffer
@@ -540,6 +564,9 @@ const toOscArgWithType = (arg: OscArgInput): OscArgWithType => {
   }
   if (typeof arg === "object" && "red" in arg) {
     return { type: "color", value: arg };
+  }
+  if (typeof arg === "bigint") {
+    return { type: "bigint", value: arg };
   }
   if (arg === true) {
     return { type: "true" };
