@@ -1203,6 +1203,17 @@ test("Trying to send zero characters fails", () => {
   });
 });
 
+test("Roundtrip color works", () => {
+  roundTripMessage([
+    {
+      red: 255,
+      green: 0,
+      blue: 175,
+      alpha: 255,
+    },
+  ]);
+});
+
 test("toOscMessage with multiple args works", function () {
   roundTripMessage(["str", 7, new ArrayBuffer(30), 6]);
 });

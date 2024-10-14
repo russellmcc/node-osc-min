@@ -208,6 +208,21 @@ const parseOscArg = (
         rest: sliceDataView(data, length + padding),
       };
     }
+    case "r": {
+      const view = toView(buffer);
+      return {
+        value: {
+          type: "color",
+          value: {
+            red: view.getUint8(0),
+            green: view.getUint8(1),
+            blue: view.getUint8(2),
+            alpha: view.getUint8(3),
+          },
+        },
+        rest: sliceDataView(view, 4),
+      };
+    }
     case "T":
       return {
         value: { type: "true", value: true },
@@ -287,6 +302,14 @@ const toOscArgument = (arg: OscArgWithType): ArrayBuffer => {
       );
       return ret.buffer;
     }
+    case "color": {
+      const ret = new DataView(new ArrayBuffer(4 * 4));
+      ret.setUint8(0, arg.value.red);
+      ret.setUint8(1, arg.value.green);
+      ret.setUint8(2, arg.value.blue);
+      ret.setUint8(3, arg.value.alpha);
+      return ret.buffer;
+    }
     case "true":
       return new ArrayBuffer(0);
     case "false":
@@ -310,7 +333,8 @@ export type OscTypeCode =
   | "N"
   | "I"
   | "S"
-  | "c";
+  | "c"
+  | "r";
 
 const RepresentationToTypeCode: {
   [key in OscArgWithType["type"]]: OscTypeCode;
@@ -327,6 +351,7 @@ const RepresentationToTypeCode: {
   bang: "I",
   symbol: "S",
   character: "c",
+  color: "r",
 };
 
 export type OscArgOutput =
@@ -359,6 +384,10 @@ export type OscArgOutput =
       value: DataView;
     }
   | {
+      type: "color";
+      value: OscColor;
+    }
+  | {
       type: "true";
       value: true;
     }
@@ -382,6 +411,13 @@ export type OscArgOutput =
 export type OscArgOutputOrArray =
   | OscArgOutput
   | { type: "array"; value: OscArgOutputOrArray[] };
+
+export type OscColor = {
+  red: number;
+  green: number;
+  blue: number;
+  alpha: number;
+};
 
 export type OscArgWithType =
   | {
@@ -417,6 +453,10 @@ export type OscArgWithType =
       value: string;
     }
   | {
+      type: "color";
+      value: OscColor;
+    }
+  | {
       type: "true";
     }
   | {
@@ -434,6 +474,7 @@ export type OscArgInput =
   | string
   | number
   | Date
+  | OscColor
   | ArrayBuffer
   | TypedBufferLike
   | true
@@ -470,6 +511,9 @@ const toOscArgWithType = (arg: OscArgInput): OscArgWithType => {
   }
   if (typeof arg === "object" && "buffer" in arg) {
     return { type: "blob", value: arg };
+  }
+  if (typeof arg === "object" && "red" in arg) {
+    return { type: "color", value: arg };
   }
   if (arg === true) {
     return { type: "true" };
