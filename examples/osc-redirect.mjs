@@ -7,9 +7,6 @@ const outport = process.argv[3] != null ? parseInt(process.argv[3]) : 41235;
 console.log(`OSC redirecter running at http://localhost:${inport}`);
 console.log(`redirecting messages to http://localhost:${outport}`);
 
-//~verbatim:examples[2]~
-//### A simple OSC redirecter;
-
 const sock = dgram.createSocket("udp4", (msg) => {
   try {
     const redirected = osc.applyAddressTransform(

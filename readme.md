@@ -13,48 +13,76 @@ is not unheard of.
 
 ---
 
-## Installation
-
-The easiest way to get osc-min is through [NPM](http://npmjs.org).
-After install npm, you can install osc-min in the current directory with
-
-```
-npm install osc-min
-```
-
-If you'd rather get osc-min through github (for example, if you're forking
-it), you still need npm to install dependencies, which you can do with
-
-```
-npm install
-```
-
-Once you've got all the dependencies you should be able to run the unit
-tests with
-
-```
-npm test
-npm run-script coverage
-```
-
-### For the browser
-
-If you want to use this library in a browser, you can build a browserified file (`build/osc-min.js`) with
-
-```
-npm install
-npm run-script browserify
-```
-
 ## Examples
 
-TODO: import from examples folder
+Further examples available in the `examples` folder.
+
+### A simple OSC server that prints any received messages
+
+<!-- doc-gen CODE src="examples/printosc.mjs" lines="8-16" -->
+      ```mjs
+      const sock = udp.createSocket("udp4", (msg) => {
+        try {
+          console.log(osc.fromBuffer(msg));
+        } catch (e) {
+          console.log("invalid OSC packet", e);
+        }
+      });
+
+      sock.bind(inport);
+      ```
+<!-- end-doc-gen -->
+
+### Send a message containing multiple arguments every 2 seconds
+
+<!-- doc-gen CODE src="examples/oscheartbeat.mjs" lines="9-25" -->
+      ```mjs
+      const sendHeartbeat = () => {
+        const buf = toBuffer({
+          address: "/heartbeat",
+          args: [
+            12,
+            "sttttring",
+            new TextEncoder().encode("beat"),
+            {
+              type: "integer",
+              value: 7,
+            },
+          ],
+        });
+        return udp.send(buf, 0, buf.byteLength, outport, "localhost");
+      };
+
+      setInterval(sendHeartbeat, 2000);
+      ```
+<!-- end-doc-gen -->
+
+### A simple OSC re-director
+
+<!-- doc-gen CODE src="examples/osc-redirect.mjs" lines="10-28" -->
+```mjs
+const sock = dgram.createSocket("udp4", (msg) => {
+  try {
+    const redirected = osc.applyAddressTransform(
+      msg,
+      (address) => `/redirect${address}`
+    );
+    return sock.send(
+      redirected,
+      0,
+      redirected.byteLength,
+      outport,
+      "localhost"
+    );
+  } catch (e) {
+    return console.log(`error redirecting: ${e}`);
+  }
+});
+
+sock.bind(inport);
+```<!-- end-doc-gen -->
 
 ---
-
-## API
-
-TODO: api docs
 
 ## Javascript representations of the OSC types.
 
@@ -64,61 +92,61 @@ See the [spec][spec] for more information on the OSC types.
 
 - An _OSC Message_:
 
-          {
-              oscType : "message"
-              address : "/address/pattern/might/have/wildcards"
-              args : [arg1,arg2]
-          }
+       {
+           oscType : "message"
+           address : "/address/pattern/might/have/wildcards"
+           args : [arg1,arg2]
+       }
 
-  Where args is an array of _OSC Arguments_. `oscType` is optional.
-  `args` can be a single element.
+Where args is an array of _OSC Arguments_. `oscType` is optional.
+`args` can be a single element.
 
 - An _OSC Argument_ is represented as a javascript object with the following layout:
 
-          {
-              type : "string"
-              value : "value"
-          }
+       {
+           type : "string"
+           value : "value"
+       }
 
-  Where the `type` is one of the following:
+Where the `type` is one of the following:
 
-  - `string` - string value
-  - `float` - numeric value
-  - `integer` - numeric value
-  - `blob` - node.js Buffer value
-  - `true` - value is boolean true
-  - `false` - value is boolean false
-  - `null` - no value
-  - `bang` - no value (this is the `I` type tag)
-  - `timetag` - Javascript `Date`
-  - `array` - array of _OSC Arguments_
+- `string` - string value
+- `float` - numeric value
+- `integer` - numeric value
+- `blob` - node.js Buffer value
+- `true` - value is boolean true
+- `false` - value is boolean false
+- `null` - no value
+- `bang` - no value (this is the `I` type tag)
+- `timetag` - Javascript `Date`
+- `array` - array of _OSC Arguments_
 
-  Note that `type` is always a string - i.e. `"true"` rather than `true`.
+Note that `type` is always a string - i.e. `"true"` rather than `true`.
 
-  The following non-standard types are also supported:
+The following non-standard types are also supported:
 
-  - `double` - numeric value (encodes to a float64 value)
+- `double` - numeric value (encodes to a float64 value)
 
-  For messages sent to the `toBuffer` function, `type` is optional.
-  If the argument is not an object, it will be interpreted as either
-  `string`, `float`, `array` or `blob`, depending on its javascript type
-  (String, Number, Array, Buffer, respectively)
+For messages sent to the `toBuffer` function, `type` is optional.
+If the argument is not an object, it will be interpreted as either
+`string`, `float`, `array` or `blob`, depending on its javascript type
+(String, Number, Array, Buffer, respectively)
 
 - An _OSC Bundle_ is represented as a javascript object with the following fields:
 
-          {
-              oscType : "bundle"
-              timetag : 7
-              elements : [element1, element]
-          }
+       {
+           oscType : "bundle"
+           timetag : 7
+           elements : [element1, element]
+       }
 
-  `oscType` "bundle"
+`oscType` "bundle"
 
-  `timetag` is one of:
+`timetag` is one of:
 
-  - `Date` - a JavaScript Date object
-  - `Array` - `[numberOfSecondsSince1900, fractionalSeconds]`
-    Both values are `number`s. This gives full timing accuracy of 1/(2^32) seconds.
+- `Date` - a JavaScript Date object
+- `Array` - `[numberOfSecondsSince1900, fractionalSeconds]`
+  Both values are `number`s. This gives full timing accuracy of 1/(2^32) seconds.
 
 `elements` is an `Array` of either _OSC Message_ or _OSC Bundle_
 
@@ -138,3 +166,7 @@ There have been a few breaking changes from the 1.0 version:
 ## License
 
 Licensed under the terms found in COPYING (zlib license)
+
+```
+
+```

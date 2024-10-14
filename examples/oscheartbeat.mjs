@@ -6,9 +6,6 @@ const outport = process.argv[2] != null ? parseInt(process.argv[2]) : 41234;
 
 console.log(`sending heartbeat messages to http://localhost:${outport}`);
 
-//~verbatim:examples[1]~
-//### Send a bunch of args every two seconds;
-
 const sendHeartbeat = () => {
   const buf = toBuffer({
     address: "/heartbeat",

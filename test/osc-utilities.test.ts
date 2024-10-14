@@ -860,7 +860,7 @@ test("fromOscBundle fails with ridiculous sizes", function () {
 });
 
 const checkRoundTrip = function (
-  args: osc.AcceptedOscArgOrArray[],
+  args: osc.OscArgOrArrayInput[],
   roundTrips: any
 ) {
   assert.strictEqual(roundTrips.length, args.length);
@@ -889,7 +889,7 @@ const checkRoundTrip = function (
   }
 };
 
-const roundTripMessage = function (args: osc.AcceptedOscArgOrArray[]) {
+const roundTripMessage = function (args: osc.OscArgOrArrayInput[]) {
   const oscMessage = {
     address: "/addr",
     args: args,
