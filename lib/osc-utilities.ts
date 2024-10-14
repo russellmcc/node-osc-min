@@ -134,21 +134,22 @@ export const timetagToDate = function ([seconds, fractional]: TimeTag) {
   return date;
 };
 
-export const deltaTimetag = function (seconds, now?: Date) {
+export const deltaTimetag = function (seconds: number, now?: Date) {
   return dateToTimetag(
     new Date((now ?? new Date()).getTime() + seconds * 1000)
   );
 };
 
 export const toTimetagBuffer = function (timetag: Date | TimeTag): ArrayBuffer {
+  let high, low;
   if (typeof timetag === "object" && "getTime" in timetag) {
-    [timetag[0], timetag[1]] = dateToTimetag(timetag);
-  } else if (timetag.length !== 2) {
-    throw new OSCError("Invalid timetag" + timetag);
+    [high, low] = dateToTimetag(timetag);
+  } else {
+    [high, low] = timetag;
   }
   const ret = new DataView(new ArrayBuffer(8));
-  ret.setUint32(0, timetag[0], false);
-  ret.setUint32(4, timetag[1], false);
+  ret.setUint32(0, high, false);
+  ret.setUint32(4, low, false);
   return ret.buffer;
 };
 
@@ -626,7 +627,9 @@ export const toOscPacket = function (packet: AcceptedOscPacket) {
   }
 };
 
-export const applyMessageTranformerToBundle = function (transform) {
+export const applyMessageTranformerToBundle = function (
+  transform: (buffer: DataView) => DataView
+) {
   return function (buffer: DataView): DataView {
     const splitStart = splitOscString(buffer);
     buffer = splitStart.rest;

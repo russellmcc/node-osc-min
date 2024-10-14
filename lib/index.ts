@@ -7,12 +7,7 @@ import * as utils from "./osc-utilities.js";
 //### .fromBuffer(buffer, [strict])
 // takes a node.js Buffer of a complete _OSC Packet_ and
 // outputs the javascript representation, or throws if the buffer is ill-formed.
-export const fromBuffer = function (buffer) {
-  if (buffer instanceof ArrayBuffer) {
-    buffer = new Buffer(new Uint8Array(buffer));
-  } else if (buffer instanceof Uint8Array) {
-    buffer = new Buffer(buffer);
-  }
+export const fromBuffer = function (buffer: utils.BufferInput) {
   return utils.fromOscPacket(buffer);
 };
 
@@ -28,8 +23,7 @@ export const fromBuffer = function (buffer) {
 //### .toBuffer(address, args[])
 // alternative syntax for above.  Assumes this is an _OSC Message_ as defined below,
 // and `args` is an array of _OSC Arguments_ or single _OSC Argument_
-export const toBuffer = function (object) {
-  if (typeof object === "string") return utils.toOscPacket({ address: object });
+export const toBuffer = function (object: utils.AcceptedOscPacket) {
   return utils.toOscPacket(object);
 };
 
@@ -52,7 +46,10 @@ export const toBuffer = function (object) {
 //     OSC types will not be able to be represented accurately.  If accuracy
 //     is important to you, then, you should never convert the OSC message to a
 //     javascript representation.
-export const applyAddressTransform = function (buffer, transform) {
+export const applyAddressTransform = function (
+  buffer: utils.BufferInput,
+  transform: (buffer: string) => string
+) {
   return utils.applyTransform(buffer, utils.addressTransform(transform));
 };
 
@@ -69,7 +66,10 @@ export const applyAddressTransform = function (buffer, transform) {
 // See notes above for applyAddressTransform for why you might want to use this.
 // While this does parse and re-pack the messages, the bundle timetags are left
 // in their accurate and prestine state.
-export const applyMessageTransform = function (buffer, transform) {
+export const applyMessageTransform = function (
+  buffer: utils.BufferInput,
+  transform: (buffer: utils.OscMessageOutput) => utils.OscMessageOutput
+) {
   return utils.applyTransform(buffer, utils.messageTransform(transform));
 };
 

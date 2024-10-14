@@ -14,7 +14,7 @@
         "rootDir": "./lib",
         /* Linting */
         // "strict": true,
-        "strictNullChecks": true,
+        "strict": true,
         // "noUnusedLocals": true,
         // "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
