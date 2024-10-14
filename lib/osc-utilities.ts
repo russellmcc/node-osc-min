@@ -193,12 +193,15 @@ const parseOscArg = (
     case "b": {
       const view = toView(buffer);
       const { value: length, rest: data } = splitInteger(view);
+      // We added padding to make sure the blob's length in the buffer is a multiple of 4
+      const padding = (4 - (length % 4)) % 4;
+
       return {
         value: {
           type: "blob",
           value: new DataView(data.buffer, data.byteOffset, length),
         },
-        rest: sliceDataView(data, length),
+        rest: sliceDataView(data, length + padding),
       };
     }
     case "T":
@@ -245,9 +248,15 @@ const toOscArgument = (arg: OscArgWithType): ArrayBuffer => {
     }
     case "blob": {
       const view = toView(arg.value);
-      const ret = new DataView(new ArrayBuffer(4 + arg.value.byteLength));
+
+      // Add padding to make the blob's length a multiple of 4
+      const padding = (4 - (arg.value.byteLength % 4)) % 4;
+
+      const ret = new DataView(
+        new ArrayBuffer(4 + arg.value.byteLength + padding)
+      );
       ret.setUint32(0, arg.value.byteLength, false);
-      new Uint8Array(ret.buffer, ret.byteOffset + 4, ret.byteLength - 4).set(
+      new Uint8Array(ret.buffer, ret.byteOffset + 4).set(
         new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
       );
       return ret.buffer;
