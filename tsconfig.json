@@ -1,0 +1,24 @@
+{
+    "include": [
+        "lib/**/*"
+    ],
+    "compilerOptions": {
+        "target": "es2020",
+        "useDefineForClassFields": true,
+        "module": "node16",
+        "skipLibCheck": true,
+        "moduleResolution": "node16",
+        /* Export options */
+        "declaration": true,
+        "outDir": "./dist",
+        "rootDir": "./lib",
+        /* Linting */
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        "isolatedDeclarations": true,
+        "isolatedModules": true
+    }
+}
