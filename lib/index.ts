@@ -7,33 +7,30 @@ import * as utils from "./osc-utilities.js";
 //### .fromBuffer(buffer, [strict])
 // takes a node.js Buffer of a complete _OSC Packet_ and
 // outputs the javascript representation, or throws if the buffer is ill-formed.
-//
-// `strict` is an optional parameter that makes the function fail more often.
-export const fromBuffer = function (buffer, strict) {
+export const fromBuffer = function (buffer) {
   if (buffer instanceof ArrayBuffer) {
     buffer = new Buffer(new Uint8Array(buffer));
   } else if (buffer instanceof Uint8Array) {
     buffer = new Buffer(buffer);
   }
-  return utils.fromOscPacket(buffer, strict);
+  return utils.fromOscPacket(buffer);
 };
 
 //~api~
 //----
-//### .toBuffer(object, [strict])
+//### .toBuffer(object)
 // takes a _OSC packet_ javascript representation as defined below and returns
 // a node.js Buffer, or throws if the representation is ill-formed.
 //
 // See "JavaScript representations of the OSC types" below.
 //
 //----
-//### .toBuffer(address, args[], [strict])
+//### .toBuffer(address, args[])
 // alternative syntax for above.  Assumes this is an _OSC Message_ as defined below,
 // and `args` is an array of _OSC Arguments_ or single _OSC Argument_
-export const toBuffer = function (object, strict, opt) {
-  if (typeof object === "string")
-    return utils.toOscPacket({ address: object, args: strict }, opt);
-  return utils.toOscPacket(object, strict);
+export const toBuffer = function (object) {
+  if (typeof object === "string") return utils.toOscPacket({ address: object });
+  return utils.toOscPacket(object);
 };
 
 //~api~

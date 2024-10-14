@@ -1,13 +1,21 @@
-var IsArray,
-  TWO_POW_32,
-  getArrayArg,
-  isOscBundleBuffer,
-  mapBundleList,
-  toOscTypeAndArgs;
+export type TypedBufferLike = {
+  buffer: ArrayBuffer;
+  byteOffset: number;
+  byteLength: number;
+};
 
-export const toOscString = function (str: string): DataView {
+export type BufferInput = ArrayBuffer | TypedBufferLike;
+
+const toView = (buffer: BufferInput): DataView => {
+  if (buffer instanceof ArrayBuffer) {
+    return new DataView(buffer);
+  }
+  return new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+};
+
+export const toOscString = function (str: string): ArrayBuffer {
   if (!(typeof str === "string")) {
-    throw new Error("can't pack a non-string into an osc-string");
+    throw new OSCError("can't pack a non-string into an osc-string");
   }
   if (str.indexOf("\u0000") !== -1) {
     throw new OSCError(
@@ -19,13 +27,14 @@ export const toOscString = function (str: string): DataView {
   const padding = 4 - (buffer.length % 4);
   const ret = new ArrayBuffer(buffer.length + padding);
   new Uint8Array(ret).set(buffer);
-  return new DataView(ret);
+  return ret;
 };
 
-export const splitOscString = function (buffer: DataView): {
+export const splitOscString = function (bufferInput: BufferInput): {
   value: string;
   rest: DataView;
 } {
+  const buffer = toView(bufferInput);
   const uint8Array = new Uint8Array(
     buffer.buffer,
     buffer.byteOffset,
@@ -35,23 +44,23 @@ export const splitOscString = function (buffer: DataView): {
   // First, find the first null character.
   const nullIndex = uint8Array.indexOf(0);
   if (nullIndex === -1) {
-    throw new Error("All osc-strings must contain a null character");
+    throw new OSCError("All osc-strings must contain a null character");
   }
   const stringPart = uint8Array.slice(0, nullIndex);
   const padding = 4 - (stringPart.length % 4);
 
-  if (uint8Array.length < nullIndex + 1 + padding) {
-    throw new Error("Note enough padding for osc-string");
+  if (uint8Array.length < nullIndex + padding) {
+    throw new OSCError(`Not enough padding for osc-string`);
   }
   // Verify padding is all zeros
   for (let i = 0; i < padding; i++) {
     if (uint8Array[stringPart.length + i] !== 0) {
-      throw new Error("Corrupt padding for osc-string");
+      throw new OSCError("Corrupt padding for osc-string");
     }
   }
   return {
     value: new TextDecoder().decode(stringPart),
-    rest: sliceDataView(buffer, nullIndex + 1 + padding),
+    rest: sliceDataView(buffer, nullIndex + padding),
   };
 };
 
@@ -65,13 +74,14 @@ const sliceDataView = (dataView: DataView, start: number) => {
   );
 };
 
-export const splitInteger = function (buffer: DataView): {
+export const splitInteger = function (bufferInput: BufferInput): {
   value: number;
   rest: DataView;
 } {
+  const buffer = toView(bufferInput);
   const bytes = 4;
   if (buffer.byteLength < bytes) {
-    throw new Error("buffer is not big enough for integer type");
+    throw new OSCError("buffer is not big enough for integer type");
   }
   return {
     value: buffer.getInt32(0, false),
@@ -79,13 +89,14 @@ export const splitInteger = function (buffer: DataView): {
   };
 };
 
-export const splitTimetag = function (buffer: DataView): {
+export const splitTimetag = function (bufferInput: BufferInput): {
   value: TimeTag;
   rest: DataView;
 } {
+  const buffer = toView(bufferInput);
   const bytes = 4;
   if (buffer.byteLength < bytes * 2) {
-    throw new Error("buffer is not big enough to contain a timetag");
+    throw new OSCError("buffer is not big enough to contain a timetag");
   }
   const seconds = buffer.getUint32(0, false);
   const fractional = buffer.getUint32(bytes, false);
@@ -97,7 +108,7 @@ export const splitTimetag = function (buffer: DataView): {
 
 const UNIX_EPOCH = 2208988800;
 
-TWO_POW_32 = 4294967296;
+const TWO_POW_32 = 4294967296;
 
 export const dateToTimetag = function (date: Date): TimeTag {
   const timeStamp = date.getTime() / 1000;
@@ -133,7 +144,7 @@ export const toTimetagBuffer = function (timetag: Date | TimeTag): ArrayBuffer {
   if (typeof timetag === "object" && "getTime" in timetag) {
     [timetag[0], timetag[1]] = dateToTimetag(timetag);
   } else if (timetag.length !== 2) {
-    throw new Error("Invalid timetag" + timetag);
+    throw new OSCError("Invalid timetag" + timetag);
   }
   const ret = new DataView(new ArrayBuffer(8));
   ret.setUint32(0, timetag[0], false);
@@ -147,259 +158,328 @@ export const toIntegerBuffer = function (number: number): ArrayBuffer {
   return ret.buffer;
 };
 
-const oscTypeCodes = {
-  s: {
-    representation: "string",
-    split: splitOscString,
-    toArg: toOscString,
-  },
-  i: {
-    representation: "integer",
-    split: splitInteger,
-    toArg: toIntegerBuffer,
-  },
-  t: {
-    representation: "timetag",
-    split: splitTimetag,
-    toArg: toTimetagBuffer,
-  },
-  f: {
-    representation: "float",
-    split: function (buffer: DataView) {
+const parseOscArg = (
+  code: string,
+  buffer: BufferInput
+):
+  | {
+      value: OscArgOutput;
+      rest: DataView;
+    }
+  | undefined => {
+  switch (code) {
+    case "s": {
+      const { value, rest } = splitOscString(buffer);
+      return { value: { type: "string", value }, rest };
+    }
+    case "i": {
+      const { value, rest } = splitInteger(buffer);
+      return { value: { type: "integer", value }, rest };
+    }
+    case "t": {
+      const { value, rest } = splitTimetag(buffer);
+      return { value: { type: "timetag", value }, rest };
+    }
+    case "f": {
+      const view = toView(buffer);
       return {
-        value: buffer.getFloat32(0, false),
-        rest: sliceDataView(buffer, 4),
+        value: { type: "float", value: view.getFloat32(0, false) },
+        rest: sliceDataView(view, 4),
       };
-    },
-    toArg: function (value: number) {
-      const ret = new DataView(new ArrayBuffer(4));
-      ret.setFloat32(0, value, false);
-      return ret.buffer;
-    },
-  },
-  d: {
-    representation: "double",
-    split: function (buffer) {
+    }
+    case "d": {
+      const view = toView(buffer);
       return {
-        value: new DataView(buffer).getFloat64(0, false),
-        rest: buffer.slice(8, buffer.length),
+        value: { type: "double", value: view.getFloat64(0, false) },
+        rest: sliceDataView(view, 8),
       };
-    },
-    toArg: function (value) {
-      const ret = new DataView(new ArrayBuffer(8));
-      ret.setFloat64(0, value, false);
-      return ret.buffer;
-    },
-  },
-  b: {
-    representation: "blob",
-    split: function (buffer: DataView) {
-      const { value: length, rest: data } = splitInteger(buffer);
+    }
+    case "b": {
+      const view = toView(buffer);
+      const { value: length, rest: data } = splitInteger(view);
       return {
-        value: new DataView(data.buffer, data.byteOffset, length),
+        value: {
+          type: "blob",
+          value: new DataView(data.buffer, data.byteOffset, length),
+        },
         rest: sliceDataView(data, length),
       };
-    },
-    toArg: function (value: DataView) {
-      const buffer = new DataView(new ArrayBuffer(4 + value.byteLength));
-      buffer.setUint32(0, value.byteLength, false);
-      new Uint8Array(
-        buffer.buffer,
-        buffer.byteOffset + 4,
-        buffer.byteLength - 4
-      ).set(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
-      return buffer.buffer;
-    },
-  },
-  T: {
-    representation: "true",
-    split: function (buffer: DataView) {
-      return {
-        rest: buffer,
-        value: true,
-      };
-    },
-    toArg: function (value: true) {
-      return new ArrayBuffer(0);
-    },
-  },
-  F: {
-    representation: "false",
-    split: function (buffer: DataView) {
-      return {
-        rest: buffer,
-        value: false,
-      };
-    },
-    toArg: function (value: false) {
-      return new ArrayBuffer(0);
-    },
-  },
-  N: {
-    representation: "null",
-    split: function (buffer: DataView) {
-      return {
-        rest: buffer,
-        value: null,
-      };
-    },
-    toArg: function (value: null) {
-      return new ArrayBuffer(0);
-    },
-  },
-  I: {
-    representation: "bang",
-    split: function (buffer: DataView) {
-      return {
-        rest: buffer,
-        value: "bang",
-      };
-    },
-    toArg: function (value: "bang") {
-      return new ArrayBuffer(0);
-    },
-  },
-};
-
-export type OscTypeCode = keyof typeof oscTypeCodes;
-
-export type Representation =
-  (typeof oscTypeCodes)[keyof typeof oscTypeCodes]["representation"];
-
-export const oscTypeCodeToTypeString = function (
-  code: string
-): (typeof oscTypeCodes)[keyof typeof oscTypeCodes]["representation"] | null {
-  return oscTypeCodes[code]?.representation ?? null;
-};
-
-export const typeStringToOscTypeCode = function (
-  rep: Representation
-): OscTypeCode | null {
-  let code: OscTypeCode;
-  for (code in oscTypeCodes) {
-    const str = oscTypeCodes[code].representation;
-    if (str === rep) {
-      return code;
     }
+    case "T":
+      return {
+        value: { type: "true", value: true },
+        rest: toView(buffer),
+      };
+    case "F":
+      return {
+        value: { type: "false", value: false },
+        rest: toView(buffer),
+      };
+    case "N":
+      return {
+        value: { type: "null", value: null },
+        rest: toView(buffer),
+      };
+    case "I":
+      return {
+        value: { type: "bang", value: "bang" },
+        rest: toView(buffer),
+      };
   }
-  return null;
+  return undefined;
 };
 
-export const argToTypeCode = function (arg) {
-  var code, value;
-  if (
-    (arg != null ? arg.type : void 0) != null &&
-    typeof arg.type === "string" &&
-    (code = typeStringToOscTypeCode(arg.type)) != null
-  ) {
-    return code;
-  }
-  value = (arg != null ? arg.value : void 0) != null ? arg.value : arg;
-  if (value == null) {
-    throw new Error("Argument has no value");
-  }
-  if (typeof value === "string") {
-    return "s";
-  }
-  if (typeof value === "number") {
-    return "f";
-  }
-  if (Buffer.isBuffer(value)) {
-    return "b";
-  }
-  if (typeof value === "boolean") {
-    if (value) {
-      return "T";
-    } else {
-      return "F";
+const toOscArgument = (arg: OscArgWithType): ArrayBuffer => {
+  switch (arg.type) {
+    case "string":
+      return toOscString(arg.value);
+    case "integer":
+      return toIntegerBuffer(arg.value);
+    case "timetag":
+      return toTimetagBuffer(arg.value);
+    case "float": {
+      const ret = new DataView(new ArrayBuffer(4));
+      ret.setFloat32(0, arg.value, false);
+      return ret.buffer;
     }
-  }
-  if (value === null) {
-    return "N";
-  }
-  throw new Error("I don't know what type this is supposed to be.");
-};
-
-export const splitOscArgument = function (buffer, type) {
-  var osctype;
-  osctype = typeStringToOscTypeCode(type);
-  if (osctype != null) {
-    return oscTypeCodes[osctype].split(buffer);
-  } else {
-    throw new Error("I don't understand how I'm supposed to unpack " + type);
-  }
-};
-
-export const toOscArgument = function (value, type) {
-  var osctype;
-  osctype = typeStringToOscTypeCode(type);
-  if (osctype != null) {
-    return oscTypeCodes[osctype].toArg(value);
-  } else {
-    throw new Error("I don't know how to pack " + type);
+    case "double": {
+      const ret = new DataView(new ArrayBuffer(8));
+      ret.setFloat64(0, arg.value, false);
+      return ret.buffer;
+    }
+    case "blob": {
+      const view = toView(arg.value);
+      const ret = new DataView(new ArrayBuffer(4 + arg.value.byteLength));
+      ret.setUint32(0, arg.value.byteLength, false);
+      new Uint8Array(ret.buffer, ret.byteOffset + 4, ret.byteLength - 4).set(
+        new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
+      );
+      return ret.buffer;
+    }
+    case "true":
+      return new ArrayBuffer(0);
+    case "false":
+      return new ArrayBuffer(0);
+    case "null":
+      return new ArrayBuffer(0);
+    case "bang":
+      return new ArrayBuffer(0);
   }
 };
 
-export const fromOscMessage = function (buffer) {
-  var address,
-    arg,
-    args,
-    arrayStack,
-    built,
-    j,
-    len,
-    ref,
-    ref1,
-    type,
-    typeString,
-    types;
-  (ref = splitOscString(buffer)), (address = ref.string), (buffer = ref.rest);
+export type OscTypeCode =
+  | "s"
+  | "i"
+  | "t"
+  | "f"
+  | "d"
+  | "b"
+  | "T"
+  | "F"
+  | "N"
+  | "I";
+
+const RepresentationToTypeCode: {
+  [key in OscArgWithType["type"]]: OscTypeCode;
+} = {
+  string: "s",
+  integer: "i",
+  timetag: "t",
+  float: "f",
+  double: "d",
+  blob: "b",
+  true: "T",
+  false: "F",
+  null: "N",
+  bang: "I",
+};
+
+export type OscArgOutput =
+  | {
+      type: "string";
+      value: string;
+    }
+  | {
+      type: "integer";
+      value: number;
+    }
+  | {
+      type: "timetag";
+      value: TimeTag;
+    }
+  | {
+      type: "float";
+      value: number;
+    }
+  | {
+      type: "double";
+      value: number;
+    }
+  | {
+      type: "blob";
+      value: DataView;
+    }
+  | {
+      type: "true";
+      value: true;
+    }
+  | {
+      type: "false";
+      value: false;
+    }
+  | {
+      type: "null";
+      value: null;
+    }
+  | {
+      type: "bang";
+      value: "bang";
+    };
+
+export type OscArgOutputOrArray =
+  | OscArgOutput
+  | { type: "array"; value: OscArgOutputOrArray[] };
+
+export type OscArgWithType =
+  | {
+      type: "string";
+      value: string;
+    }
+  | {
+      type: "integer";
+      value: number;
+    }
+  | {
+      type: "timetag";
+      value: TimeTag | Date;
+    }
+  | {
+      type: "float";
+      value: number;
+    }
+  | {
+      type: "double";
+      value: number;
+    }
+  | {
+      type: "blob";
+      value: ArrayBuffer | TypedBufferLike;
+    }
+  | {
+      type: "true";
+    }
+  | {
+      type: "false";
+    }
+  | {
+      type: "null";
+    }
+  | {
+      type: "bang";
+    };
+
+export type AcceptedOscArg =
+  | OscArgWithType
+  | string
+  | number
+  | Date
+  | ArrayBuffer
+  | TypedBufferLike
+  | true
+  | false
+  | "bang"
+  | null;
+
+export type AcceptedOscArgOrArray =
+  | AcceptedOscArg
+  | AcceptedOscArgOrArray[]
+  | { type: "array"; value: AcceptedOscArgOrArray[] };
+
+const toOscArgWithType = (arg: AcceptedOscArg): OscArgWithType => {
+  if (arg === null) {
+    return { type: "null" };
+  }
+  if (typeof arg === "object" && "type" in arg) {
+    return arg;
+  }
+  if (arg === "bang") {
+    return { type: "bang" };
+  }
+  if (typeof arg === "string") {
+    return { type: "string", value: arg };
+  }
+  if (typeof arg === "number") {
+    return { type: "float", value: arg };
+  }
+  if (arg instanceof Date) {
+    return { type: "timetag", value: arg };
+  }
+  if (arg instanceof ArrayBuffer) {
+    return { type: "blob", value: arg };
+  }
+  if (typeof arg === "object" && "buffer" in arg) {
+    return { type: "blob", value: arg };
+  }
+  if (arg === true) {
+    return { type: "true" };
+  }
+  if (arg === false) {
+    return { type: "false" };
+  }
+  arg satisfies never;
+  throw new OSCError("Invalid argument: " + arg);
+};
+
+export type OscMessageOutput = {
+  address: string;
+  args: OscArgOutputOrArray[];
+  oscType: "message";
+};
+
+export const fromOscMessage = function (buffer: BufferInput): OscMessageOutput {
+  const { value: address, rest } = splitOscString(buffer);
+  buffer = rest;
   if (address[0] !== "/") {
     throw new OSCError("addresses must start with /");
   }
-  if (!buffer.length) {
+  if (!buffer.byteLength) {
     return {
       address: address,
       args: [],
+      oscType: "message",
     };
   }
-  (ref1 = splitOscString(buffer)), (types = ref1.string), (buffer = ref1.rest);
+  const split = splitOscString(buffer);
+  const types = split.value;
+  buffer = split.rest;
   if (types[0] !== ",") {
     throw new OSCError("Argument lists must begin with ,");
   }
-  types = types.slice(1, +types.length + 1 || 9e9);
-  args = [];
-  arrayStack = [args];
-  for (j = 0, len = types.length; j < len; j++) {
-    type = types[j];
-    if (type === "[") {
+  const args: OscArgOutputOrArray[] = [];
+  const arrayStack = [args];
+  for (const parsedType of types.slice(1)) {
+    if (parsedType === "[") {
       arrayStack.push([]);
       continue;
     }
-    if (type === "]") {
+    if (parsedType === "]") {
       if (arrayStack.length <= 1) {
         throw new OSCError("Mismatched ']' character.");
       } else {
-        built = arrayStack.pop();
-        arrayStack[arrayStack.length - 1].push({
+        const built = arrayStack.pop()!;
+        arrayStack[arrayStack.length - 1]!.push({
           type: "array",
           value: built,
         });
       }
       continue;
     }
-    typeString = oscTypeCodeToTypeString(type);
-    if (typeString == null) {
-      throw new Error("I don't understand the argument code " + type);
+    const parsed = parseOscArg(parsedType, buffer);
+    if (parsed === undefined) {
+      throw new OSCError("I don't understand the argument code " + parsedType);
     }
-    arg = splitOscArgument(buffer, typeString);
-    if (arg != null) {
-      buffer = arg.rest;
-    }
-    arrayStack[arrayStack.length - 1].push({
-      type: typeString,
-      value: arg != null ? arg.value : void 0,
-    });
+    buffer = parsed.rest;
+    arrayStack[arrayStack.length - 1]!.push(parsed.value);
   }
   if (arrayStack.length !== 1) {
     throw new OSCError("Mismatched '[' character");
@@ -411,14 +491,25 @@ export const fromOscMessage = function (buffer) {
   };
 };
 
-export const fromOscBundle = function (buffer) {
-  var bundleTag, convertedElems, ref, ref1, timetag;
-  (ref = splitOscString(buffer)), (bundleTag = ref.string), (buffer = ref.rest);
+export type OscBundleOutput = {
+  timetag: TimeTag;
+  elements: OscPacketOutput[];
+  oscType: "bundle";
+};
+
+export type OscPacketOutput = OscMessageOutput | OscBundleOutput;
+
+export const fromOscBundle = function (buffer: BufferInput): OscBundleOutput {
+  const split1 = splitOscString(buffer);
+  const bundleTag = split1.value;
+  buffer = split1.rest;
   if (bundleTag !== "#bundle") {
-    throw new Error("osc-bundles must begin with #bundle");
+    throw new OSCError("osc-bundles must begin with #bundle");
   }
-  (ref1 = splitTimetag(buffer)), (timetag = ref1.timetag), (buffer = ref1.rest);
-  convertedElems = mapBundleList(buffer, function (buffer) {
+  const split2 = splitTimetag(buffer);
+  const timetag = split2.value;
+  buffer = split2.rest;
+  const convertedElems = mapBundleList(buffer, function (buffer: BufferInput) {
     return fromOscPacket(buffer);
   });
   return {
@@ -428,7 +519,7 @@ export const fromOscBundle = function (buffer) {
   };
 };
 
-export const fromOscPacket = function (buffer) {
+export const fromOscPacket = function (buffer: BufferInput): OscPacketOutput {
   if (isOscBundleBuffer(buffer)) {
     return fromOscBundle(buffer);
   } else {
@@ -436,233 +527,189 @@ export const fromOscPacket = function (buffer) {
   }
 };
 
-getArrayArg = function (arg) {
-  if (IsArray(arg)) {
-    return arg;
-  } else if (
-    (arg != null ? arg.type : void 0) === "array" &&
-    IsArray(arg != null ? arg.value : void 0)
-  ) {
-    return arg.value;
-  } else if (arg != null && arg.type == null && IsArray(arg.value)) {
-    return arg.value;
+const toOscTypeAndArgs = function (args: AcceptedOscArgOrArray[]): {
+  type: string;
+  args: ArrayBuffer[];
+} {
+  let osctype = "";
+  let oscargs: ArrayBuffer[] = [];
+  for (const arg of args) {
+    if (
+      arg !== null &&
+      (Array.isArray(arg) ||
+        (typeof arg === "object" && "type" in arg && arg.type === "array"))
+    ) {
+      const { type, args: newargs } = toOscTypeAndArgs(
+        Array.isArray(arg) ? arg : arg.value
+      );
+      osctype += "[" + type + "]";
+      oscargs = oscargs.concat(newargs);
+    } else {
+      const withType = toOscArgWithType(arg);
+      const typeCode = RepresentationToTypeCode[withType.type];
+      const buff = toOscArgument(withType);
+      osctype += typeCode;
+      oscargs.push(buff);
+    }
+  }
+  return { type: osctype, args: oscargs };
+};
+
+export const concat = (buffers: BufferInput[]): ArrayBuffer => {
+  const totalLength = buffers.reduce(
+    (acc, buffer: BufferInput) => acc + buffer.byteLength,
+    0
+  );
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const buffer of buffers) {
+    const view = toView(buffer);
+    result.set(
+      new Uint8Array(view.buffer, view.byteOffset, view.byteLength),
+      offset
+    );
+    offset += view.byteLength;
+  }
+  return result.buffer;
+};
+
+export type AcceptedOscMessage =
+  | string
+  | { address: string; args?: AcceptedOscArgOrArray[] | AcceptedOscArg };
+
+export const toOscMessage = function (
+  message: AcceptedOscMessage
+): ArrayBuffer {
+  const address = typeof message === "string" ? message : message.address;
+  const rawArgs =
+    typeof message === "string"
+      ? []
+      : message.args === undefined
+      ? []
+      : Array.isArray(message.args)
+      ? message.args
+      : [message.args];
+  const oscaddr = toOscString(address);
+  const { type, args } = toOscTypeAndArgs(rawArgs);
+  return concat([oscaddr, toOscString("," + type)].concat(args));
+};
+
+export type AcceptedOscBundle = {
+  timetag: TimeTag | Date;
+  elements?: AcceptedOscPacket[] | AcceptedOscPacket;
+};
+
+export type AcceptedOscPacket = AcceptedOscBundle | AcceptedOscMessage;
+
+export const toOscBundle = function (bundle: AcceptedOscBundle): ArrayBuffer {
+  const elements =
+    bundle.elements === undefined
+      ? []
+      : Array.isArray(bundle.elements)
+      ? bundle.elements
+      : [bundle.elements];
+  const oscBundleTag = toOscString("#bundle");
+  const oscTimeTag = toTimetagBuffer(bundle.timetag);
+  const oscElems = elements.reduce((acc, x) => {
+    const buffer = toOscPacket(x);
+    const size = toIntegerBuffer(buffer.byteLength);
+    return acc.concat([size, buffer]);
+  }, new Array<ArrayBuffer>());
+  return concat([oscBundleTag, oscTimeTag, ...oscElems]);
+};
+
+export const toOscPacket = function (packet: AcceptedOscPacket) {
+  if (typeof packet === "object" && "timetag" in packet) {
+    return toOscBundle(packet);
   } else {
-    return null;
+    return toOscMessage(packet);
   }
-};
-
-toOscTypeAndArgs = function (argList) {
-  var arg,
-    buff,
-    j,
-    len,
-    oscargs,
-    osctype,
-    ref,
-    thisArgs,
-    thisType,
-    typeCode,
-    value;
-  osctype = "";
-  oscargs = [];
-  for (j = 0, len = argList.length; j < len; j++) {
-    arg = argList[j];
-    if (getArrayArg(arg) != null) {
-      (ref = toOscTypeAndArgs(getArrayArg(arg))),
-        (thisType = ref[0]),
-        (thisArgs = ref[1]);
-      osctype += "[" + thisType + "]";
-      oscargs = oscargs.concat(thisArgs);
-      continue;
-    }
-    typeCode = argToTypeCode(arg);
-    if (typeCode != null) {
-      value = arg != null ? arg.value : void 0;
-      if (value === void 0) {
-        value = arg;
-      }
-      buff = toOscArgument(value, oscTypeCodeToTypeString(typeCode));
-      if (buff != null) {
-        oscargs.push(buff);
-        osctype += typeCode;
-      }
-    }
-  }
-  return [osctype, oscargs];
-};
-
-export const toOscMessage = function (message) {
-  var address, allArgs, args, old_arg, oscaddr, oscargs, osctype, ref;
-  address =
-    (message != null ? message.address : void 0) != null
-      ? message.address
-      : message;
-  if (typeof address !== "string") {
-    throw new Error("message must contain an address");
-  }
-  args = message != null ? message.args : void 0;
-  if (args === void 0) {
-    args = [];
-  }
-  if (!IsArray(args)) {
-    old_arg = args;
-    args = [];
-    args[0] = old_arg;
-  }
-  oscaddr = toOscString(address);
-  (ref = toOscTypeAndArgs(args)), (osctype = ref[0]), (oscargs = ref[1]);
-  osctype = "," + osctype;
-  allArgs = concat(oscargs);
-  osctype = toOscString(osctype);
-  return concat([oscaddr, osctype, allArgs]);
-};
-
-export const toOscBundle = function (bundle) {
-  var allElems,
-    buff,
-    e,
-    elem,
-    elements,
-    elemstr,
-    j,
-    len,
-    oscBundleTag,
-    oscElems,
-    oscTimeTag,
-    ref,
-    ref1,
-    size,
-    timetag;
-  if ((bundle != null ? bundle.timetag : void 0) == null) {
-    throw new OSCError("bundles must have timetags.");
-  }
-  timetag =
-    (ref = bundle != null ? bundle.timetag : void 0) != null ? ref : new Date();
-  elements =
-    (ref1 = bundle != null ? bundle.elements : void 0) != null ? ref1 : [];
-  if (!IsArray(elements)) {
-    elemstr = elements;
-    elements = [];
-    elements.push(elemstr);
-  }
-  oscBundleTag = toOscString("#bundle");
-  oscTimeTag = toTimetagBuffer(timetag);
-  oscElems = [];
-  for (j = 0, len = elements.length; j < len; j++) {
-    elem = elements[j];
-    try {
-      buff = toOscPacket(elem);
-      size = toIntegerBuffer(buff.length);
-      oscElems.push(concat([size, buff]));
-    } catch (error) {
-      e = error;
-      null;
-    }
-  }
-  allElems = concat(oscElems);
-  return concat([oscBundleTag, oscTimeTag, allElems]);
-};
-
-export const toOscPacket = function (bundleOrMessage) {
-  if ((bundleOrMessage != null ? bundleOrMessage.oscType : void 0) != null) {
-    if (bundleOrMessage.oscType === "bundle") {
-      return toOscBundle(bundleOrMessage);
-    }
-    return toOscMessage(bundleOrMessage);
-  }
-  if (
-    (bundleOrMessage != null ? bundleOrMessage.timetag : void 0) != null ||
-    (bundleOrMessage != null ? bundleOrMessage.elements : void 0) != null
-  ) {
-    return toOscBundle(bundleOrMessage);
-  }
-  return toOscMessage(bundleOrMessage);
 };
 
 export const applyMessageTranformerToBundle = function (transform) {
-  return function (buffer) {
-    var bundleTagBuffer,
-      copyIndex,
-      elem,
-      elems,
-      j,
-      k,
-      len,
-      len1,
-      lengthBuff,
-      outBuffer,
-      ref,
-      string,
-      timetagBuffer,
-      totalLength;
-    (ref = splitOscString(buffer)), (string = ref.string), (buffer = ref.rest);
-    if (string !== "#bundle") {
-      throw new Error("osc-bundles must begin with #bundle");
+  return function (buffer: DataView): DataView {
+    const splitStart = splitOscString(buffer);
+    buffer = splitStart.rest;
+    if (splitStart.value !== "#bundle") {
+      throw new OSCError("osc-bundles must begin with #bundle");
     }
-    bundleTagBuffer = toOscString(string);
-    timetagBuffer = buffer.slice(0, 8);
-    buffer = buffer.slice(8, buffer.length);
-    elems = mapBundleList(buffer, function (buffer) {
+    const bundleTagBuffer = toOscString(splitStart.value);
+    const timetagBuffer = new DataView(buffer.buffer, buffer.byteOffset, 8);
+    buffer = sliceDataView(buffer, 8);
+    const elems = mapBundleList(buffer, function (buffer) {
       return applyTransform(
         buffer,
         transform,
         applyMessageTranformerToBundle(transform)
       );
     });
-    totalLength = bundleTagBuffer.length + timetagBuffer.length;
-    for (j = 0, len = elems.length; j < len; j++) {
-      elem = elems[j];
-      totalLength += 4 + elem.length;
-    }
-    outBuffer = new Buffer(totalLength);
-    bundleTagBuffer.copy(outBuffer, 0);
-    timetagBuffer.copy(outBuffer, bundleTagBuffer.length);
-    copyIndex = bundleTagBuffer.length + timetagBuffer.length;
-    for (k = 0, len1 = elems.length; k < len1; k++) {
-      elem = elems[k];
-      lengthBuff = toIntegerBuffer(elem.length);
-      lengthBuff.copy(outBuffer, copyIndex);
+    const totalLength =
+      bundleTagBuffer.byteLength +
+      timetagBuffer.byteLength +
+      elems.reduce((acc, elem) => acc + 4 + elem.byteLength, 0);
+    const outBuffer = new Uint8Array(totalLength);
+    outBuffer.set(new Uint8Array(bundleTagBuffer), 0);
+    outBuffer.set(
+      new Uint8Array(
+        timetagBuffer.buffer,
+        timetagBuffer.byteOffset,
+        timetagBuffer.byteLength
+      ),
+      bundleTagBuffer.byteLength
+    );
+    let copyIndex = bundleTagBuffer.byteLength + timetagBuffer.byteLength;
+    for (const elem of elems) {
+      outBuffer.set(
+        new Uint8Array(toIntegerBuffer(elem.byteLength)),
+        copyIndex
+      );
       copyIndex += 4;
-      elem.copy(outBuffer, copyIndex);
-      copyIndex += elem.length;
+      outBuffer.set(
+        new Uint8Array(elem.buffer, elem.byteOffset, elem.byteLength),
+        copyIndex
+      );
+      copyIndex += elem.byteLength;
     }
-    return outBuffer;
+    return new DataView(
+      outBuffer.buffer,
+      outBuffer.byteOffset,
+      outBuffer.byteLength
+    );
   };
 };
 
 export const applyTransform = function (
-  buffer,
-  mTransform,
-  bundleTransform?: (buffer: Buffer) => Buffer
-) {
+  buffer: BufferInput,
+  mTransform: (buffer: DataView) => DataView,
+  bundleTransform?: (buffer: DataView) => DataView
+): DataView {
   if (bundleTransform == null) {
     bundleTransform = applyMessageTranformerToBundle(mTransform);
   }
-  if (isOscBundleBuffer(buffer)) {
-    return bundleTransform(buffer);
+  const view = toView(buffer);
+  if (isOscBundleBuffer(view)) {
+    return bundleTransform(view);
   } else {
-    return mTransform(buffer);
+    return mTransform(view);
   }
 };
 
-export const addressTransform = function (transform) {
-  return function (buffer) {
-    var ref, rest, string;
-    (ref = splitOscString(buffer)), (string = ref.string), (rest = ref.rest);
-    string = transform(string);
-    return concat([toOscString(string), rest]);
+export const addressTransform = function (
+  transform: (string: string) => string
+) {
+  return function (buffer: DataView): DataView {
+    const { value, rest } = splitOscString(buffer);
+    return new DataView(concat([toOscString(transform(value)), rest]));
   };
 };
 
-export const messageTransform = function (transform) {
-  return function (buffer) {
-    var message;
-    message = fromOscMessage(buffer);
-    return toOscMessage(transform(message));
+export const messageTransform = function (
+  transform: (message: OscMessageOutput) => OscMessageOutput
+) {
+  return function (buffer: DataView): DataView {
+    return new DataView(toOscMessage(transform(fromOscMessage(buffer))));
   };
 };
-
-IsArray = Array.isArray;
 
 class OSCError extends Error {
   constructor(message: string) {
@@ -671,40 +718,32 @@ class OSCError extends Error {
   }
 }
 
-isOscBundleBuffer = function (buffer) {
-  const string = splitOscString(buffer).string;
+const isOscBundleBuffer = function (buffer: BufferInput) {
+  const string = splitOscString(buffer).value;
   return string === "#bundle";
 };
 
-mapBundleList = function (buffer, func) {
-  var e, elem, elems, j, len, nonNullElems, size, thisElemBuffer;
-  elems = (function () {
-    var ref, results;
-    results = [];
-    while (buffer.length) {
-      (ref = splitInteger(buffer)), (size = ref.integer), (buffer = ref.rest);
-      if (size > buffer.length) {
-        throw new Error(
-          "Invalid bundle list: size of element is bigger than buffer"
-        );
-      }
-      thisElemBuffer = buffer.slice(0, size);
-      buffer = buffer.slice(size, buffer.length);
-      try {
-        results.push(func(thisElemBuffer));
-      } catch (error) {
-        e = error;
-        results.push(null);
-      }
+const mapBundleList = function <T>(
+  buffer: BufferInput,
+  func: (buffer: BufferInput) => T
+): T[] {
+  let view = toView(buffer);
+  const results = new Array<T>();
+  while (view.byteLength) {
+    const { value: size, rest } = splitInteger(view);
+    view = rest;
+    if (size > view.byteLength) {
+      throw new OSCError(
+        "Invalid bundle list: size of element is bigger than buffer"
+      );
     }
-    return results;
-  })();
-  nonNullElems = [];
-  for (j = 0, len = elems.length; j < len; j++) {
-    elem = elems[j];
-    if (elem != null) {
-      nonNullElems.push(elem);
-    }
+    const subView = new DataView(view.buffer, view.byteOffset, size);
+    try {
+      // If there's an exception thrown from the map function, just ignore
+      // this result.
+      results.push(func(subView));
+    } catch (_) {}
+    view = sliceDataView(view, size);
   }
-  return nonNullElems;
+  return results;
 };

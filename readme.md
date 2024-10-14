@@ -90,7 +90,7 @@ See the [spec][spec] for more information on the OSC types.
   - `false` - value is boolean false
   - `null` - no value
   - `bang` - no value (this is the `I` type tag)
-  - `timetag` - numeric value
+  - `timetag` - Javascript `Date`
   - `array` - array of _OSC Arguments_
 
   Note that `type` is always a string - i.e. `"true"` rather than `true`.
@@ -116,13 +116,7 @@ See the [spec][spec] for more information on the OSC types.
 
   `timetag` is one of:
 
-  - `null` - meaning now, the current time.
-    By the time the bundle is received it will too late and depending
-    on the receiver may be discarded or you may be scolded for being late.
-  - `number` - relative seconds from now with millisecond accuracy.
-  - `Date` - a JavaScript Date object in your local time zone.
-    OSC timetags use UTC timezone, so do not try to adjust for timezones,
-    this is not needed.
+  - `Date` - a JavaScript Date object
   - `Array` - `[numberOfSecondsSince1900, fractionalSeconds]`
     Both values are `number`s. This gives full timing accuracy of 1/(2^32) seconds.
 
