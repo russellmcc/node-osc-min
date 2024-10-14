@@ -13,7 +13,7 @@ const toView = (buffer: BufferInput): DataView => {
   return new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
 };
 
-export const toOscString = function (str: string): ArrayBuffer {
+export const toOscString = (str: string): ArrayBuffer => {
   if (!(typeof str === "string")) {
     throw new OSCError("can't pack a non-string into an osc-string");
   }
@@ -30,10 +30,12 @@ export const toOscString = function (str: string): ArrayBuffer {
   return ret;
 };
 
-export const splitOscString = function (bufferInput: BufferInput): {
+export const splitOscString = (
+  bufferInput: BufferInput
+): {
   value: string;
   rest: DataView;
-} {
+} => {
   const buffer = toView(bufferInput);
   const uint8Array = new Uint8Array(
     buffer.buffer,
@@ -66,18 +68,19 @@ export const splitOscString = function (bufferInput: BufferInput): {
 
 export type TimeTag = [number, number];
 
-const sliceDataView = (dataView: DataView, start: number) => {
-  return new DataView(
+const sliceDataView = (dataView: DataView, start: number) =>
+  new DataView(
     dataView.buffer,
     dataView.byteOffset + start,
     dataView.byteLength - start
   );
-};
 
-export const splitInteger = function (bufferInput: BufferInput): {
+export const splitInteger = (
+  bufferInput: BufferInput
+): {
   value: number;
   rest: DataView;
-} {
+} => {
   const buffer = toView(bufferInput);
   const bytes = 4;
   if (buffer.byteLength < bytes) {
@@ -89,10 +92,12 @@ export const splitInteger = function (bufferInput: BufferInput): {
   };
 };
 
-export const splitTimetag = function (bufferInput: BufferInput): {
+export const splitTimetag = (
+  bufferInput: BufferInput
+): {
   value: TimeTag;
   rest: DataView;
-} {
+} => {
   const buffer = toView(bufferInput);
   const bytes = 4;
   if (buffer.byteLength < bytes * 2) {
@@ -110,23 +115,19 @@ const UNIX_EPOCH = 2208988800;
 
 const TWO_POW_32 = 4294967296;
 
-export const dateToTimetag = function (date: Date): TimeTag {
+export const dateToTimetag = (date: Date): TimeTag => {
   const timeStamp = date.getTime() / 1000;
   const wholeSecs = Math.floor(timeStamp);
   return makeTimetag(wholeSecs, timeStamp - wholeSecs);
 };
 
-const makeTimetag = function (
-  unixseconds: number,
-  fracSeconds: number
-): TimeTag {
-  var ntpFracs, ntpSecs;
-  ntpSecs = unixseconds + UNIX_EPOCH;
-  ntpFracs = Math.round(TWO_POW_32 * fracSeconds);
+const makeTimetag = (unixseconds: number, fracSeconds: number): TimeTag => {
+  const ntpSecs = unixseconds + UNIX_EPOCH;
+  const ntpFracs = Math.round(TWO_POW_32 * fracSeconds);
   return [ntpSecs, ntpFracs];
 };
 
-export const timetagToDate = function ([seconds, fractional]: TimeTag): Date {
+export const timetagToDate = ([seconds, fractional]: TimeTag): Date => {
   const date = new Date();
   date.setTime(
     (seconds - UNIX_EPOCH) * 1000 + (fractional * 1000) / TWO_POW_32
@@ -134,7 +135,7 @@ export const timetagToDate = function ([seconds, fractional]: TimeTag): Date {
   return date;
 };
 
-export const toTimetagBuffer = function (timetag: Date | TimeTag): ArrayBuffer {
+export const toTimetagBuffer = (timetag: Date | TimeTag): ArrayBuffer => {
   let high, low;
   if (typeof timetag === "object" && "getTime" in timetag) {
     [high, low] = dateToTimetag(timetag);
@@ -147,7 +148,7 @@ export const toTimetagBuffer = function (timetag: Date | TimeTag): ArrayBuffer {
   return ret.buffer;
 };
 
-export const toIntegerBuffer = function (number: number): ArrayBuffer {
+export const toIntegerBuffer = (number: number): ArrayBuffer => {
   const ret = new DataView(new ArrayBuffer(4));
   ret.setInt32(0, number, false);
   return ret.buffer;
@@ -418,6 +419,8 @@ const toOscArgWithType = (arg: AcceptedOscArg): OscArgWithType => {
   if (arg === true) {
     return { type: "true" };
   }
+  // This unnecessary condition helps exhaustivity checking
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (arg === false) {
     return { type: "false" };
   }
@@ -431,7 +434,7 @@ export type OscMessageOutput = {
   oscType: "message";
 };
 
-export const fromOscMessage = function (buffer: BufferInput): OscMessageOutput {
+export const fromOscMessage = (buffer: BufferInput): OscMessageOutput => {
   const { value: address, rest } = splitOscString(buffer);
   buffer = rest;
   if (address[0] !== "/") {
@@ -494,7 +497,7 @@ export type OscBundleOutput = {
 
 export type OscPacketOutput = OscMessageOutput | OscBundleOutput;
 
-export const fromOscBundle = function (buffer: BufferInput): OscBundleOutput {
+export const fromOscBundle = (buffer: BufferInput): OscBundleOutput => {
   const split1 = splitOscString(buffer);
   const bundleTag = split1.value;
   buffer = split1.rest;
@@ -504,9 +507,9 @@ export const fromOscBundle = function (buffer: BufferInput): OscBundleOutput {
   const split2 = splitTimetag(buffer);
   const timetag = split2.value;
   buffer = split2.rest;
-  const convertedElems = mapBundleList(buffer, function (buffer: BufferInput) {
-    return fromOscPacket(buffer);
-  });
+  const convertedElems = mapBundleList(buffer, (buffer: BufferInput) =>
+    fromOscPacket(buffer)
+  );
   return {
     timetag: timetag,
     elements: convertedElems,
@@ -514,7 +517,7 @@ export const fromOscBundle = function (buffer: BufferInput): OscBundleOutput {
   };
 };
 
-export const fromOscPacket = function (buffer: BufferInput): OscPacketOutput {
+export const fromOscPacket = (buffer: BufferInput): OscPacketOutput => {
   if (isOscBundleBuffer(buffer)) {
     return fromOscBundle(buffer);
   } else {
@@ -522,10 +525,12 @@ export const fromOscPacket = function (buffer: BufferInput): OscPacketOutput {
   }
 };
 
-const toOscTypeAndArgs = function (args: AcceptedOscArgOrArray[]): {
+const toOscTypeAndArgs = (
+  args: AcceptedOscArgOrArray[]
+): {
   type: string;
   args: ArrayBuffer[];
-} {
+} => {
   let osctype = "";
   let oscargs: ArrayBuffer[] = [];
   for (const arg of args) {
@@ -572,9 +577,7 @@ export type AcceptedOscMessage =
   | string
   | { address: string; args?: AcceptedOscArgOrArray[] | AcceptedOscArg };
 
-export const toOscMessage = function (
-  message: AcceptedOscMessage
-): ArrayBuffer {
+export const toOscMessage = (message: AcceptedOscMessage): DataView => {
   const address = typeof message === "string" ? message : message.address;
   const rawArgs =
     typeof message === "string"
@@ -586,7 +589,7 @@ export const toOscMessage = function (
       : [message.args];
   const oscaddr = toOscString(address);
   const { type, args } = toOscTypeAndArgs(rawArgs);
-  return concat([oscaddr, toOscString("," + type)].concat(args));
+  return new DataView(concat([oscaddr, toOscString("," + type)].concat(args)));
 };
 
 export type AcceptedOscBundle = {
@@ -596,7 +599,7 @@ export type AcceptedOscBundle = {
 
 export type AcceptedOscPacket = AcceptedOscBundle | AcceptedOscMessage;
 
-export const toOscBundle = function (bundle: AcceptedOscBundle): ArrayBuffer {
+export const toOscBundle = (bundle: AcceptedOscBundle): DataView => {
   const elements =
     bundle.elements === undefined
       ? []
@@ -608,12 +611,12 @@ export const toOscBundle = function (bundle: AcceptedOscBundle): ArrayBuffer {
   const oscElems = elements.reduce((acc, x) => {
     const buffer = toOscPacket(x);
     const size = toIntegerBuffer(buffer.byteLength);
-    return acc.concat([size, buffer]);
-  }, new Array<ArrayBuffer>());
-  return concat([oscBundleTag, oscTimeTag, ...oscElems]);
+    return acc.concat([new DataView(size), buffer]);
+  }, new Array<DataView>());
+  return new DataView(concat([oscBundleTag, oscTimeTag, ...oscElems]));
 };
 
-export const toOscPacket = function (packet: AcceptedOscPacket): ArrayBuffer {
+export const toOscPacket = (packet: AcceptedOscPacket): DataView => {
   if (typeof packet === "object" && "timetag" in packet) {
     return toOscBundle(packet);
   } else {
@@ -621,10 +624,9 @@ export const toOscPacket = function (packet: AcceptedOscPacket): ArrayBuffer {
   }
 };
 
-export const applyMessageTranformerToBundle = function (
-  transform: (buffer: DataView) => DataView
-) {
-  return function (buffer: DataView): DataView {
+export const applyMessageTranformerToBundle =
+  (transform: (buffer: DataView) => DataView) =>
+  (buffer: DataView): DataView => {
     const splitStart = splitOscString(buffer);
     buffer = splitStart.rest;
     if (splitStart.value !== "#bundle") {
@@ -633,13 +635,13 @@ export const applyMessageTranformerToBundle = function (
     const bundleTagBuffer = toOscString(splitStart.value);
     const timetagBuffer = new DataView(buffer.buffer, buffer.byteOffset, 8);
     buffer = sliceDataView(buffer, 8);
-    const elems = mapBundleList(buffer, function (buffer) {
-      return applyTransform(
+    const elems = mapBundleList(buffer, (buffer) =>
+      applyTransform(
         buffer,
         transform,
         applyMessageTranformerToBundle(transform)
-      );
-    });
+      )
+    );
     const totalLength =
       bundleTagBuffer.byteLength +
       timetagBuffer.byteLength +
@@ -673,13 +675,12 @@ export const applyMessageTranformerToBundle = function (
       outBuffer.byteLength
     );
   };
-};
 
-export const applyTransform = function (
+export const applyTransform = (
   buffer: BufferInput,
   mTransform: (buffer: DataView) => DataView,
   bundleTransform?: (buffer: DataView) => DataView
-): DataView {
+): DataView => {
   if (bundleTransform == null) {
     bundleTransform = applyMessageTranformerToBundle(mTransform);
   }
@@ -691,22 +692,17 @@ export const applyTransform = function (
   }
 };
 
-export const addressTransform = function (
-  transform: (string: string) => string
-) {
-  return function (buffer: DataView): DataView {
+export const addressTransform =
+  (transform: (string: string) => string) =>
+  (buffer: DataView): DataView => {
     const { value, rest } = splitOscString(buffer);
     return new DataView(concat([toOscString(transform(value)), rest]));
   };
-};
 
-export const messageTransform = function (
-  transform: (message: OscMessageOutput) => OscMessageOutput
-) {
-  return function (buffer: DataView): DataView {
-    return new DataView(toOscMessage(transform(fromOscMessage(buffer))));
-  };
-};
+export const messageTransform =
+  (transform: (message: OscMessageOutput) => OscMessageOutput) =>
+  (buffer: DataView): DataView =>
+    toOscMessage(transform(fromOscMessage(buffer)));
 
 class OSCError extends Error {
   constructor(message: string) {
@@ -715,15 +711,15 @@ class OSCError extends Error {
   }
 }
 
-const isOscBundleBuffer = function (buffer: BufferInput) {
+const isOscBundleBuffer = (buffer: BufferInput) => {
   const string = splitOscString(buffer).value;
   return string === "#bundle";
 };
 
-const mapBundleList = function <T>(
+const mapBundleList = <T>(
   buffer: BufferInput,
   func: (buffer: BufferInput) => T
-): T[] {
+): T[] => {
   let view = toView(buffer);
   const results = new Array<T>();
   while (view.byteLength) {
@@ -739,7 +735,9 @@ const mapBundleList = function <T>(
       // If there's an exception thrown from the map function, just ignore
       // this result.
       results.push(func(subView));
-    } catch (_) {}
+    } catch (_) {
+      /* empty */
+    }
     view = sliceDataView(view, size);
   }
   return results;

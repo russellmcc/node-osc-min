@@ -7,11 +7,8 @@ import * as utils from "./osc-utilities.js";
 //### .fromBuffer(buffer, [strict])
 // takes a node.js Buffer of a complete _OSC Packet_ and
 // outputs the javascript representation, or throws if the buffer is ill-formed.
-export const fromBuffer = function (
-  buffer: utils.BufferInput
-): utils.OscPacketOutput {
-  return utils.fromOscPacket(buffer);
-};
+export const fromBuffer = (buffer: utils.BufferInput): utils.OscPacketOutput =>
+  utils.fromOscPacket(buffer);
 
 //~api~
 //----
@@ -25,11 +22,8 @@ export const fromBuffer = function (
 //### .toBuffer(address, args[])
 // alternative syntax for above.  Assumes this is an _OSC Message_ as defined below,
 // and `args` is an array of _OSC Arguments_ or single _OSC Argument_
-export const toBuffer = function (
-  object: utils.AcceptedOscPacket
-): ArrayBuffer {
-  return utils.toOscPacket(object);
-};
+export const toBuffer = (object: utils.AcceptedOscPacket): DataView =>
+  utils.toOscPacket(object);
 
 //~api~
 //----
@@ -50,12 +44,10 @@ export const toBuffer = function (
 //     OSC types will not be able to be represented accurately.  If accuracy
 //     is important to you, then, you should never convert the OSC message to a
 //     javascript representation.
-export const applyAddressTransform = function (
+export const applyAddressTransform = (
   buffer: utils.BufferInput,
   transform: (buffer: string) => string
-): DataView {
-  return utils.applyTransform(buffer, utils.addressTransform(transform));
-};
+): DataView => utils.applyTransform(buffer, utils.addressTransform(transform));
 
 //~api~
 //----
@@ -70,12 +62,10 @@ export const applyAddressTransform = function (
 // See notes above for applyAddressTransform for why you might want to use this.
 // While this does parse and re-pack the messages, the bundle timetags are left
 // in their accurate and prestine state.
-export const applyMessageTransform = function (
+export const applyMessageTransform = (
   buffer: utils.BufferInput,
   transform: (buffer: utils.OscMessageOutput) => utils.OscMessageOutput
-): DataView {
-  return utils.applyTransform(buffer, utils.messageTransform(transform));
-};
+): DataView => utils.applyTransform(buffer, utils.messageTransform(transform));
 
 //~api~
 //----

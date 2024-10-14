@@ -124,6 +124,16 @@ See the [spec][spec] for more information on the OSC types.
 
 ## [spec]: http://opensoundcontrol.org/spec-1_0
 
+## Migrating from 1.0
+
+There have been a few breaking changes from the 1.0 version:
+
+- We now provide type declarations for typescript compatibility
+- We always enable the previously optional "strict" errors
+- Many explicit error messages for passing in data of the wrong type have been removed. We encourage you to use typescript to prevent these sorts of errors.
+- Functions that used to return `Buffer` now return `DataView`
+- TimeTags must be specified as `Date`s or `[number, number]` arrays, and are always returned as `[number, number]` arrays. To convert between arrays and `Date`s, use `dateToTimetag` and `timetagToDate`.
+
 ## License
 
 Licensed under the terms found in COPYING (zlib license)
