@@ -168,6 +168,10 @@ const parseOscArg = (
       const { value, rest } = splitOscString(buffer);
       return { value: { type: "string", value }, rest };
     }
+    case "S": {
+      const { value, rest } = splitOscString(buffer);
+      return { value: { type: "symbol", value }, rest };
+    }
     case "i": {
       const { value, rest } = splitInteger(buffer);
       return { value: { type: "integer", value }, rest };
@@ -204,6 +208,21 @@ const parseOscArg = (
         rest: sliceDataView(data, length + padding),
       };
     }
+    case "r": {
+      const view = toView(buffer);
+      return {
+        value: {
+          type: "color",
+          value: {
+            red: view.getUint8(0),
+            green: view.getUint8(1),
+            blue: view.getUint8(2),
+            alpha: view.getUint8(3),
+          },
+        },
+        rest: sliceDataView(view, 4),
+      };
+    }
     case "T":
       return {
         value: { type: "true", value: true },
@@ -224,6 +243,33 @@ const parseOscArg = (
         value: { type: "bang", value: "bang" },
         rest: toView(buffer),
       };
+    case "c": {
+      const view = toView(buffer);
+      const codepoint = view.getUint32(0, false);
+      return {
+        value: { type: "character", value: String.fromCodePoint(codepoint) },
+        rest: sliceDataView(view, 4),
+      };
+    }
+    case "h": {
+      const view = toView(buffer);
+      const bigint = view.getBigInt64(0, false);
+      return {
+        value: { type: "bigint", value: bigint },
+        rest: sliceDataView(view, 8),
+      };
+    }
+    case "m": {
+      const view = toView(buffer);
+      if (view.byteLength < 4) {
+        throw new OSCError("buffer is not big enough to contain a midi packet");
+      }
+      const array = new Uint8Array(view.buffer, view.byteOffset, 4);
+      return {
+        value: { type: "midi", value: [...array] as OscMidiPacket },
+        rest: sliceDataView(view, 4),
+      };
+    }
   }
   return undefined;
 };
@@ -232,13 +278,32 @@ const toOscArgument = (arg: OscArgWithType): ArrayBuffer => {
   switch (arg.type) {
     case "string":
       return toOscString(arg.value);
+    case "symbol":
+      return toOscString(arg.value);
     case "integer":
       return toIntegerBuffer(arg.value);
     case "timetag":
       return toTimetagBuffer(arg.value);
+    case "character": {
+      const chars = [...arg.value];
+
+      if (chars.length !== 1) {
+        throw new OSCError("Can only send a single character");
+      }
+
+      const ret = new DataView(new ArrayBuffer(4));
+      // ! is safe here because we checked length === 1 above
+      ret.setUint32(0, chars[0]!.codePointAt(0) ?? 0, false);
+      return ret.buffer;
+    }
     case "float": {
       const ret = new DataView(new ArrayBuffer(4));
       ret.setFloat32(0, arg.value, false);
+      return ret.buffer;
+    }
+    case "bigint": {
+      const ret = new DataView(new ArrayBuffer(8));
+      ret.setBigInt64(0, arg.value, false);
       return ret.buffer;
     }
     case "double": {
@@ -261,6 +326,17 @@ const toOscArgument = (arg: OscArgWithType): ArrayBuffer => {
       );
       return ret.buffer;
     }
+    case "color": {
+      const ret = new DataView(new ArrayBuffer(4 * 4));
+      ret.setUint8(0, arg.value.red);
+      ret.setUint8(1, arg.value.green);
+      ret.setUint8(2, arg.value.blue);
+      ret.setUint8(3, arg.value.alpha);
+      return ret.buffer;
+    }
+    case "midi": {
+      return new Uint8Array(arg.value).buffer;
+    }
     case "true":
       return new ArrayBuffer(0);
     case "false":
@@ -282,7 +358,12 @@ export type OscTypeCode =
   | "T"
   | "F"
   | "N"
-  | "I";
+  | "I"
+  | "S"
+  | "c"
+  | "r"
+  | "m"
+  | "h";
 
 const RepresentationToTypeCode: {
   [key in OscArgWithType["type"]]: OscTypeCode;
@@ -297,7 +378,14 @@ const RepresentationToTypeCode: {
   false: "F",
   null: "N",
   bang: "I",
+  symbol: "S",
+  character: "c",
+  color: "r",
+  midi: "m",
+  bigint: "h",
 };
+
+export type OscMidiPacket = [number, number, number, number];
 
 export type OscArgOutput =
   | {
@@ -305,8 +393,16 @@ export type OscArgOutput =
       value: string;
     }
   | {
+      type: "symbol";
+      value: string;
+    }
+  | {
       type: "integer";
       value: number;
+    }
+  | {
+      type: "bigint";
+      value: bigint;
     }
   | {
       type: "timetag";
@@ -325,6 +421,14 @@ export type OscArgOutput =
       value: DataView;
     }
   | {
+      type: "midi";
+      value: OscMidiPacket;
+    }
+  | {
+      type: "color";
+      value: OscColor;
+    }
+  | {
       type: "true";
       value: true;
     }
@@ -339,11 +443,22 @@ export type OscArgOutput =
   | {
       type: "bang";
       value: "bang";
+    }
+  | {
+      type: "character";
+      value: string;
     };
 
 export type OscArgOutputOrArray =
   | OscArgOutput
   | { type: "array"; value: OscArgOutputOrArray[] };
+
+export type OscColor = {
+  red: number;
+  green: number;
+  blue: number;
+  alpha: number;
+};
 
 export type OscArgWithType =
   | {
@@ -351,8 +466,16 @@ export type OscArgWithType =
       value: string;
     }
   | {
+      type: "symbol";
+      value: string;
+    }
+  | {
       type: "integer";
       value: number;
+    }
+  | {
+      type: "bigint";
+      value: bigint;
     }
   | {
       type: "timetag";
@@ -371,6 +494,18 @@ export type OscArgWithType =
       value: ArrayBuffer | TypedBufferLike;
     }
   | {
+      type: "character";
+      value: string;
+    }
+  | {
+      type: "color";
+      value: OscColor;
+    }
+  | {
+      type: "midi";
+      value: OscMidiPacket;
+    }
+  | {
       type: "true";
     }
   | {
@@ -387,7 +522,9 @@ export type OscArgInput =
   | OscArgWithType
   | string
   | number
+  | bigint
   | Date
+  | OscColor
   | ArrayBuffer
   | TypedBufferLike
   | true
@@ -424,6 +561,12 @@ const toOscArgWithType = (arg: OscArgInput): OscArgWithType => {
   }
   if (typeof arg === "object" && "buffer" in arg) {
     return { type: "blob", value: arg };
+  }
+  if (typeof arg === "object" && "red" in arg) {
+    return { type: "color", value: arg };
+  }
+  if (typeof arg === "bigint") {
+    return { type: "bigint", value: arg };
   }
   if (arg === true) {
     return { type: "true" };

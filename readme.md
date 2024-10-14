@@ -114,6 +114,12 @@ Where the `type` is one of the following:
 - `string` - string value
 - `float` - numeric value
 - `integer` - numeric value
+- `color` - JS object containing `red`, `green`, `blue`, `alpha` in range 0-255
+- `midi` - four-element array of numbers representing a midi packet of data
+- `symbol` - string value
+- `character` - a single-character string
+- `double` - numeric value
+- `bigint` - 64-bit `bigint` value (watch out, this will be truncated to 64 bits!)
 - `blob` - `ArrayBuffer`, `DataView`, `TypedArray` or node.js `Buffer`
 - `true` - value is boolean true
 - `false` - value is boolean false

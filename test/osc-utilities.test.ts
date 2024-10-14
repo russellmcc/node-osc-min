@@ -1157,6 +1157,76 @@ test("toOscMessage just a string works", function () {
   assert.strictEqual(message.args.length, 0);
 });
 
+test("roundtrip symbol works", () => {
+  roundTripMessage([
+    {
+      type: "symbol",
+      value: "bleh",
+    },
+  ]);
+});
+
+test("roundtrip character works", () => {
+  roundTripMessage([
+    {
+      type: "character",
+      value: "b",
+    },
+  ]);
+});
+
+test("roundtrip emoji works", () => {
+  // Note this isn't actually standard but feels like it should work
+  roundTripMessage([
+    {
+      type: "character",
+      value: "🎛",
+    },
+  ]);
+});
+
+test("Trying to send multiple characters fails", () => {
+  assert.throws(() => {
+    osc.toOscMessage({
+      address: "/addr",
+      args: { type: "character", value: "ab" },
+    });
+  });
+});
+
+test("Trying to send zero characters fails", () => {
+  assert.throws(() => {
+    osc.toOscMessage({
+      address: "/addr",
+      args: { type: "character", value: "" },
+    });
+  });
+});
+
+test("Roundtrip color works", () => {
+  roundTripMessage([
+    {
+      red: 255,
+      green: 0,
+      blue: 175,
+      alpha: 255,
+    },
+  ]);
+});
+
+test("Roundtrip bigint works", () => {
+  roundTripMessage([1234567891234n]);
+});
+
+test("Roundtrip midi works", () => {
+  roundTripMessage([
+    {
+      type: "midi",
+      value: [1, 2, 3, 4],
+    },
+  ]);
+});
+
 test("toOscMessage with multiple args works", function () {
   roundTripMessage(["str", 7, new ArrayBuffer(30), 6]);
 });
