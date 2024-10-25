@@ -1,9 +1,22 @@
 import * as utils from "./osc-utilities.js";
 
+export type OscPacketInput = utils.OscPacketInput;
+export type OscBundleInput = utils.OscBundleInput;
+export type OscMessageInput = utils.OscMessageInput;
+export type OscArgInput = utils.OscArgInput;
+export type OscArgOrArrayInput = utils.OscArgOrArrayInput;
+export type OscPacketOutput = utils.OscPacketOutput;
+export type OscBundleOutput = utils.OscBundleOutput;
+export type OscMessageOutput = utils.OscMessageOutput;
+export type OscArgOutput = utils.OscArgOutput;
+export type OscArgOutputOrArray = utils.OscArgOutputOrArray;
+export type BufferInput = utils.BufferInput;
+export type TimeTag = utils.TimeTag;
+
 /** Takes a `TypedArray`, `DataView`, `ArrayBuffer`, of node.js `Buffer` of a complete _OSC Packet_ and
  *  outputs the javascript representation, or throws if the buffer is ill-formed.
  */
-export const fromBuffer = (buffer: utils.BufferInput): utils.OscPacketOutput =>
+export const fromBuffer = (buffer: BufferInput): OscPacketOutput =>
   utils.fromOscPacket(buffer);
 
 /**
@@ -12,7 +25,7 @@ export const fromBuffer = (buffer: utils.BufferInput): utils.OscPacketOutput =>
  *
  * See "JavaScript representations of the OSC types" below.
  */
-export const toBuffer = (object: utils.OscPacketInput): DataView =>
+export const toBuffer = (object: OscPacketInput): DataView =>
   utils.toOscPacket(object);
 
 /**
@@ -34,7 +47,7 @@ export const toBuffer = (object: utils.OscPacketInput): DataView =>
  *     javascript representation.
  */
 export const applyAddressTransform = (
-  buffer: utils.BufferInput,
+  buffer: BufferInput,
   transform: (buffer: string) => string
 ): DataView => utils.applyTransform(buffer, utils.addressTransform(transform));
 
@@ -49,8 +62,8 @@ export const applyAddressTransform = (
  * See notes above for applyAddressTransform for why you might want to use this.
  */
 export const applyMessageTransform = (
-  buffer: utils.BufferInput,
-  transform: (buffer: utils.OscMessageOutput) => utils.OscMessageOutput
+  buffer: BufferInput,
+  transform: (buffer: OscMessageOutput) => OscMessageOutput
 ): DataView => utils.applyTransform(buffer, utils.messageTransform(transform));
 
 /**
@@ -61,7 +74,7 @@ export const applyMessageTransform = (
  *
  * This utility is useful for logging. Accuracy is reduced to milliseconds.
  */
-export const timetagToDate: ([seconds, fractional]: utils.TimeTag) => Date =
+export const timetagToDate: ([seconds, fractional]: TimeTag) => Date =
   utils.timetagToDate;
 
 /**
@@ -69,4 +82,4 @@ export const timetagToDate: ([seconds, fractional]: utils.TimeTag) => Date =
  *
  * `toBuffer` already accepts Dates for timetags so you might not need this function. If you need to schedule bundles with finer than millisecond accuracy then you could use this to help assemble the NTP array.
  */
-export const dateToTimetag: (date: Date) => utils.TimeTag = utils.dateToTimetag;
+export const dateToTimetag: (date: Date) => TimeTag = utils.dateToTimetag;
