@@ -1,5 +1,5 @@
 export type TypedBufferLike = {
-  buffer: ArrayBuffer;
+  buffer: ArrayBufferLike;
   byteOffset: number;
   byteLength: number;
 };
